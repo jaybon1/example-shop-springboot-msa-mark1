@@ -17,6 +17,7 @@ java {
 repositories {
 	mavenCentral()
 	maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://jitpack.io' }
 }
 
 ext {
@@ -24,6 +25,8 @@ ext {
 }
 
 dependencies {
+    implementation 'com.github.jaybon1:example-shop-springboot-msa-global:0.0.1'
+
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
