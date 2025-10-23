@@ -1,0 +1,23 @@
+server:
+  port: 19000
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config-repository
+
+# 이번 config서버는 eureka에 등록되지 않고 독립적으로 구동
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:19100/eureka/
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false

@@ -1,0 +1,55 @@
+server:
+  port: 19200
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/v*/users/**, /v*/auth/**, /springdoc/openapi3-user-service.json
+
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/v*/products/**, /springdoc/openapi3-product-service.json
+
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/v*/orders/**, /springdoc/openapi3-order-service.json
+
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/v*/payments/**, /springdoc/openapi3-payment-service.json
+
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/v*/notifications/**, /springdoc/openapi3-notification-service.json
+      discovery:
+        locator:
+          enabled: true
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: 0-user-service
+        url: /springdoc/openapi3-user-service.json
+
+      - name: 1-product-service
+        url: /springdoc/openapi3-product-service.json
+
+      - name: 2-order-service
+        url: /springdoc/openapi3-order-service.json
+
+      - name: 3-payment-service
+        url: /springdoc/openapi3-payment-service.json
+
+      - name: 4-notification-service
+        url: /springdoc/openapi3-notification-service.json
+
+    #    use-root-path: true
+    path: /docs

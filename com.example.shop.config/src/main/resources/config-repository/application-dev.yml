@@ -1,0 +1,8 @@
+# 공통 설정
+
+message: "Config 서버의 공통 설정 테스트 메시지 입니다."
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:19100/eureka/

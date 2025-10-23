@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: payment-service
+  config:
+    import: "configserver:http://localhost:19000"
+  cloud:
+    config:
+      name: payment-service
+      profile: dev
+      fail-fast: true

@@ -1,0 +1,111 @@
+plugins {
+	id 'java'
+    id 'org.springframework.boot' version '3.4.10'
+    id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.epages.restdocs-api-spec' version "0.19.2"
+}
+
+group = 'com.example.shop'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+}
+
+ext {
+	set('springCloudVersion', "2024.0.0")
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	implementation 'org.springframework.cloud:spring-cloud-starter-config'
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	runtimeOnly 'com.h2database:h2'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// restdocs & openapi
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+	testImplementation 'com.epages:restdocs-api-spec-mockmvc:0.19.2'
+
+	// querydsl
+	implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
+	annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
+	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+	implementation 'org.jetbrains:annotations:24.1.0'
+
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+compileJava {
+	dependsOn 'clean'
+}
+
+postman {
+	baseUrl = 'http://localhost:19200'
+	title = 'NOTIFICATION API'
+	version = '1.0.0'
+}
+
+openapi3 {
+	servers = [
+			{
+				url = 'http://localhost:19200'
+			}
+	]
+	title = 'NOTIFICATION API'
+	description = ''
+	version = '1.0.0'
+	format = 'json'
+}
+
+tasks.register('setDocs') {
+	dependsOn 'postman'
+	dependsOn 'openapi3'
+	doLast {
+		copy {
+			from "build/api-spec"
+			include "*.json"
+			include "*.yaml"
+			into "build/resources/main/static/springdoc"
+			rename { String fileName ->
+				if (fileName.endsWith('.json')) {
+					return fileName.replace('.json', '-notification-service.json')
+				} else if (fileName.endsWith('.yaml')) {
+					return fileName.replace('.yaml', '-notification-service.yml')
+				}
+				return fileName
+			}
+		}
+	}
+}
+
+bootRun {
+	dependsOn 'setDocs'
+}
+
+bootJar {
+	dependsOn 'setDocs'
+}

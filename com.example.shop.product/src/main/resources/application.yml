@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: product-service
+  config:
+    import: "configserver:http://localhost:19000"
+  cloud:
+    config:
+      name: product-service
+      profile: dev
+      fail-fast: true
