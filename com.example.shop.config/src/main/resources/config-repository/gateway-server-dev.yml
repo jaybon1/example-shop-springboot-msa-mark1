@@ -4,6 +4,9 @@ server:
 spring:
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
       routes:
         - id: user-service
           uri: lb://user-service
@@ -25,14 +28,6 @@ spring:
           predicates:
             - Path=/v*/payments/**, /springdoc/openapi3-payment-service.json
 
-        - id: notification-service
-          uri: lb://notification-service
-          predicates:
-            - Path=/v*/notifications/**, /springdoc/openapi3-notification-service.json
-      discovery:
-        locator:
-          enabled: true
-
 springdoc:
   swagger-ui:
     urls:
@@ -47,9 +42,6 @@ springdoc:
 
       - name: 3-payment-service
         url: /springdoc/openapi3-payment-service.json
-
-      - name: 4-notification-service
-        url: /springdoc/openapi3-notification-service.json
 
     #    use-root-path: true
     path: /docs
