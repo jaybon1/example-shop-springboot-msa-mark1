@@ -1,9 +1,10 @@
 package com.example.shop.product.presentation.controller;
 
 import com.example.shop.global.presentation.dto.ApiDto;
-import com.example.shop.product.presentation.dto.request.ReqPostProductStockAdjustDtoV1;
-import com.example.shop.product.presentation.dto.response.ResPostProductStockReleaseDtoV1;
-import com.example.shop.product.presentation.dto.response.ResPostProductStockReturnDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductStockReleaseDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductStockReturnDtoV1;
+import com.example.shop.product.presentation.dto.response.ResPostInternalProductStockReleaseDtoV1;
+import com.example.shop.product.presentation.dto.response.ResPostInternalProductStockReturnDtoV1;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/internal/v1/products")
-public class ProductInternalControllerV1 {
+public class InternalProductControllerV1 {
 
     @PostMapping("/{productId}/stock-release")
-    public ResponseEntity<ApiDto<ResPostProductStockReleaseDtoV1>> releaseProductStock(
+    public ResponseEntity<ApiDto<ResPostInternalProductStockReleaseDtoV1>> releaseProductStock(
             @PathVariable("productId") UUID productId,
-            @RequestBody @Valid ReqPostProductStockAdjustDtoV1 reqDto
+            @RequestBody @Valid ReqPostInternalProductStockReleaseDtoV1 reqDto
     ) {
-        ResPostProductStockReleaseDtoV1 responseBody = ResPostProductStockReleaseDtoV1.builder()
+        ResPostInternalProductStockReleaseDtoV1 responseBody = ResPostInternalProductStockReleaseDtoV1.builder()
                 .productId(productId.toString())
                 .orderId(reqDto.getOrderId().toString())
                 .releasedQuantity(reqDto.getQuantity())
@@ -30,7 +31,7 @@ public class ProductInternalControllerV1 {
                 .build();
 
         return ResponseEntity.ok(
-                ApiDto.<ResPostProductStockReleaseDtoV1>builder()
+                ApiDto.<ResPostInternalProductStockReleaseDtoV1>builder()
                         .code("PRODUCT_STOCK_RELEASED")
                         .message("상품 재고 차감이 완료되었습니다.")
                         .data(responseBody)
@@ -39,11 +40,11 @@ public class ProductInternalControllerV1 {
     }
 
     @PostMapping("/{productId}/stock-return")
-    public ResponseEntity<ApiDto<ResPostProductStockReturnDtoV1>> returnProductStock(
+    public ResponseEntity<ApiDto<ResPostInternalProductStockReturnDtoV1>> returnProductStock(
             @PathVariable("productId") UUID productId,
-            @RequestBody @Valid ReqPostProductStockAdjustDtoV1 reqDto
+            @RequestBody @Valid ReqPostInternalProductStockReturnDtoV1 reqDto
     ) {
-        ResPostProductStockReturnDtoV1 responseBody = ResPostProductStockReturnDtoV1.builder()
+        ResPostInternalProductStockReturnDtoV1 responseBody = ResPostInternalProductStockReturnDtoV1.builder()
                 .productId(productId.toString())
                 .orderId(reqDto.getOrderId().toString())
                 .returnedQuantity(reqDto.getQuantity())
@@ -51,7 +52,7 @@ public class ProductInternalControllerV1 {
                 .build();
 
         return ResponseEntity.ok(
-                ApiDto.<ResPostProductStockReturnDtoV1>builder()
+                ApiDto.<ResPostInternalProductStockReturnDtoV1>builder()
                         .code("PRODUCT_STOCK_RETURNED")
                         .message("상품 재고 복원이 완료되었습니다.")
                         .data(responseBody)

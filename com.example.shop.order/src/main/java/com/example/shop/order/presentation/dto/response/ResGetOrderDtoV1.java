@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ResGetOrdersWithIdDtoV1 {
+public class ResGetOrderDtoV1 {
 
     private final OrderDto order;
 

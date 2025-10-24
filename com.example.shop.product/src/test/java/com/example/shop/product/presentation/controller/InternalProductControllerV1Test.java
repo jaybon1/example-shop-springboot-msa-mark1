@@ -9,7 +9,8 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
-import com.example.shop.product.presentation.dto.request.ReqPostProductStockAdjustDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductStockReleaseDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductStockReturnDtoV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -21,14 +22,14 @@ import org.springframework.http.MediaType;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(value = ProductInternalControllerV1.class, properties = {
+@WebMvcTest(value = InternalProductControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
         "spring.cloud.discovery.enabled=false",
         "eureka.client.enabled=false",
         "spring.config.import=optional:classpath:/"
 })
 @AutoConfigureRestDocs
-class ProductInternalControllerV1Test {
+class InternalProductControllerV1Test {
 
     @Autowired
     private MockMvc mockMvc;
@@ -39,7 +40,7 @@ class ProductInternalControllerV1Test {
     @Test
     @DisplayName("내부 API - 재고 차감 요청이 성공하면 PRODUCT_STOCK_RELEASED 응답을 반환한다")
     void releaseProductStock_returnsReleasedCode() throws Exception {
-        ReqPostProductStockAdjustDtoV1 request = ReqPostProductStockAdjustDtoV1.builder()
+        ReqPostInternalProductStockReleaseDtoV1 request = ReqPostInternalProductStockReleaseDtoV1.builder()
                 .orderId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
                 .quantity(3L)
                 .build();
@@ -77,7 +78,7 @@ class ProductInternalControllerV1Test {
     @Test
     @DisplayName("내부 API - 재고 복원 요청이 성공하면 PRODUCT_STOCK_RETURNED 응답을 반환한다")
     void returnProductStock_returnsReturnedCode() throws Exception {
-        ReqPostProductStockAdjustDtoV1 request = ReqPostProductStockAdjustDtoV1.builder()
+        ReqPostInternalProductStockReturnDtoV1 request = ReqPostInternalProductStockReturnDtoV1.builder()
                 .orderId(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"))
                 .quantity(2L)
                 .build();

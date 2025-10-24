@@ -10,7 +10,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ResGetProductsDtoV1 {
 
-    private final List<ProductDto> productList;
+    private final List<ProductDto> products;
 
     @Getter
     @Builder

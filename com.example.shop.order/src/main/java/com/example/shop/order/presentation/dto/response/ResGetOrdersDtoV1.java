@@ -11,7 +11,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ResGetOrdersDtoV1 {
 
-    private final List<OrderDto> orderList;
+    private final List<OrderDto> orders;
 
     @Getter
     @Builder

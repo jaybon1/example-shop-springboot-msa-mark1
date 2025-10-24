@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ResGetPaymentsWithIdDtoV1 {
+public class ResGetPaymentDtoV1 {
 
     private final PaymentDto payment;
 

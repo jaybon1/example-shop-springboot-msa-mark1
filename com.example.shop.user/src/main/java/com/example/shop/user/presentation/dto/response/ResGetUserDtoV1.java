@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ResGetUsersWithIdDtoV1 {
+public class ResGetUserDtoV1 {
 
     private final UserDto user;
 

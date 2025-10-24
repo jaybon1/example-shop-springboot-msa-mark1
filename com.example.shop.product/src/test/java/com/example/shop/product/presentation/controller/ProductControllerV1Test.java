@@ -43,8 +43,8 @@ class ProductControllerV1Test {
     void getProducts_returnsDummyList() throws Exception {
         mockMvc.perform(get("/v1/products"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.productList", hasSize(2)))
-                .andExpect(jsonPath("$.data.productList[0].name", equalTo("샘플 상품 A")))
+                .andExpect(jsonPath("$.data.products", hasSize(2)))
+                .andExpect(jsonPath("$.data.products[0].name", equalTo("샘플 상품 A")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "product-get-products",

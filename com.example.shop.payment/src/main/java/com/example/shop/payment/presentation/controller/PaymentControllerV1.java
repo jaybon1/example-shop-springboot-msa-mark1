@@ -2,7 +2,7 @@ package com.example.shop.payment.presentation.controller;
 
 import com.example.shop.global.presentation.dto.ApiDto;
 import com.example.shop.payment.presentation.dto.request.ReqPostPaymentsDtoV1;
-import com.example.shop.payment.presentation.dto.response.ResGetPaymentsWithIdDtoV1;
+import com.example.shop.payment.presentation.dto.response.ResGetPaymentDtoV1;
 import com.example.shop.payment.presentation.dto.response.ResPostPaymentsDtoV1;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -20,10 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentControllerV1 {
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiDto<ResGetPaymentsWithIdDtoV1>> getPayment(@PathVariable("id") UUID paymentId) {
-        ResGetPaymentsWithIdDtoV1 responseBody = ResGetPaymentsWithIdDtoV1.builder()
+    public ResponseEntity<ApiDto<ResGetPaymentDtoV1>> getPayment(@PathVariable("id") UUID paymentId) {
+        ResGetPaymentDtoV1 responseBody = ResGetPaymentDtoV1.builder()
                 .payment(
-                        ResGetPaymentsWithIdDtoV1.PaymentDto.builder()
+                        ResGetPaymentDtoV1.PaymentDto.builder()
                                 .id(paymentId.toString())
                                 .status("COMPLETED")
                                 .method("CARD")
@@ -34,7 +34,7 @@ public class PaymentControllerV1 {
                 .build();
 
         return ResponseEntity.ok(
-                ApiDto.<ResGetPaymentsWithIdDtoV1>builder()
+                ApiDto.<ResGetPaymentDtoV1>builder()
                         .data(responseBody)
                         .build()
         );

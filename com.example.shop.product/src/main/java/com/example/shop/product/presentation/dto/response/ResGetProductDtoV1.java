@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ResGetProductsWithIdDtoV1 {
+public class ResGetProductDtoV1 {
 
     private final ProductDto product;
 

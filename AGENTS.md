@@ -59,6 +59,7 @@
 - `user` 서비스 인증 엔드포인트(`register`, `login`, `refresh`, `access-token-check`) 더미 구현 및 RestDocs 연동 완료.
 - Resilience4j fallback 자동 구성은 의존성 버전을 낮춰 해결(설정 변경 무효화).
 - RestDocs 스니펫 → OpenAPI merge 파이프라인 구성 완료.
+- user 서비스 Spring Security 및 JPA Auditing 구성 완료.
 
 ## 후속 작업 아이디어
 - product/internal API에 대한 실제 재고 처리 로직 및 멱등성 구현(현재는 더미 응답).

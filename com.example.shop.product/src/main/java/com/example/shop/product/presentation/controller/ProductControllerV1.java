@@ -3,7 +3,7 @@ package com.example.shop.product.presentation.controller;
 import com.example.shop.global.presentation.dto.ApiDto;
 import com.example.shop.product.presentation.dto.request.ReqPostProductsDtoV1;
 import com.example.shop.product.presentation.dto.response.ResGetProductsDtoV1;
-import com.example.shop.product.presentation.dto.response.ResGetProductsWithIdDtoV1;
+import com.example.shop.product.presentation.dto.response.ResGetProductDtoV1;
 import com.example.shop.product.presentation.dto.response.ResPostProductsDtoV1;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -40,7 +40,7 @@ public class ProductControllerV1 {
         );
 
         ResGetProductsDtoV1 responseBody = ResGetProductsDtoV1.builder()
-                .productList(productDtoList)
+                .products(productDtoList)
                 .build();
 
         return ResponseEntity.ok(
@@ -51,10 +51,10 @@ public class ProductControllerV1 {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiDto<ResGetProductsWithIdDtoV1>> getProduct(@PathVariable("id") UUID productId) {
-        ResGetProductsWithIdDtoV1 responseBody = ResGetProductsWithIdDtoV1.builder()
+    public ResponseEntity<ApiDto<ResGetProductDtoV1>> getProduct(@PathVariable("id") UUID productId) {
+        ResGetProductDtoV1 responseBody = ResGetProductDtoV1.builder()
                 .product(
-                        ResGetProductsWithIdDtoV1.ProductDto.builder()
+                        ResGetProductDtoV1.ProductDto.builder()
                                 .id(productId.toString())
                                 .name("단일 상품")
                                 .price(15_000L)
@@ -64,7 +64,7 @@ public class ProductControllerV1 {
                 .build();
 
         return ResponseEntity.ok(
-                ApiDto.<ResGetProductsWithIdDtoV1>builder()
+                ApiDto.<ResGetProductDtoV1>builder()
                         .data(responseBody)
                         .build()
         );

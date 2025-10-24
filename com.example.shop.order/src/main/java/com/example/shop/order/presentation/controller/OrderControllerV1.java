@@ -3,7 +3,7 @@ package com.example.shop.order.presentation.controller;
 import com.example.shop.global.presentation.dto.ApiDto;
 import com.example.shop.order.presentation.dto.request.ReqPostOrdersDtoV1;
 import com.example.shop.order.presentation.dto.response.ResGetOrdersDtoV1;
-import com.example.shop.order.presentation.dto.response.ResGetOrdersWithIdDtoV1;
+import com.example.shop.order.presentation.dto.response.ResGetOrderDtoV1;
 import com.example.shop.order.presentation.dto.response.ResPostOrdersDtoV1;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -39,7 +39,7 @@ public class OrderControllerV1 {
         );
 
         ResGetOrdersDtoV1 responseBody = ResGetOrdersDtoV1.builder()
-                .orderList(orderDtoList)
+                .orders(orderDtoList)
                 .build();
 
         return ResponseEntity.ok(
@@ -50,16 +50,16 @@ public class OrderControllerV1 {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiDto<ResGetOrdersWithIdDtoV1>> getOrder(@PathVariable("id") UUID orderId) {
-        ResGetOrdersWithIdDtoV1 responseBody = ResGetOrdersWithIdDtoV1.builder()
+    public ResponseEntity<ApiDto<ResGetOrderDtoV1>> getOrder(@PathVariable("id") UUID orderId) {
+        ResGetOrderDtoV1 responseBody = ResGetOrderDtoV1.builder()
                 .order(
-                        ResGetOrdersWithIdDtoV1.OrderDto.builder()
+                        ResGetOrderDtoV1.OrderDto.builder()
                                 .id(orderId.toString())
                                 .status("PAID")
                                 .totalAmount(120_000L)
                                 .createdAt(Instant.parse("2024-03-01T09:00:00Z"))
                                 .orderItemList(List.of(
-                                        ResGetOrdersWithIdDtoV1.OrderItemDto.builder()
+                                        ResGetOrderDtoV1.OrderItemDto.builder()
                                                 .id(UUID.fromString("10101010-aaaa-bbbb-cccc-111111111111").toString())
                                                 .productId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").toString())
                                                 .productName("샘플 상품 A")
@@ -67,7 +67,7 @@ public class OrderControllerV1 {
                                                 .quantity(2L)
                                                 .lineTotal(80_000L)
                                                 .build(),
-                                        ResGetOrdersWithIdDtoV1.OrderItemDto.builder()
+                                        ResGetOrderDtoV1.OrderItemDto.builder()
                                                 .id(UUID.fromString("20202020-aaaa-bbbb-cccc-222222222222").toString())
                                                 .productId(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").toString())
                                                 .productName("샘플 상품 B")
@@ -77,7 +77,7 @@ public class OrderControllerV1 {
                                                 .build()
                                 ))
                                 .payment(
-                                        ResGetOrdersWithIdDtoV1.PaymentDto.builder()
+                                        ResGetOrderDtoV1.PaymentDto.builder()
                                                 .id(UUID.fromString("99999999-9999-9999-9999-999999999999").toString())
                                                 .status("COMPLETED")
                                                 .method("CARD")
@@ -89,7 +89,7 @@ public class OrderControllerV1 {
                 .build();
 
         return ResponseEntity.ok(
-                ApiDto.<ResGetOrdersWithIdDtoV1>builder()
+                ApiDto.<ResGetOrderDtoV1>builder()
                         .data(responseBody)
                         .build()
         );

@@ -37,8 +37,8 @@ class UserControllerV1Test {
     void getUsers_returnsDummyUsers() throws Exception {
         mockMvc.perform(get("/v1/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.userList", hasSize(2)))
-                .andExpect(jsonPath("$.data.userList[0].username", equalTo("admin")))
+                .andExpect(jsonPath("$.data.users", hasSize(2)))
+                .andExpect(jsonPath("$.data.users[0].username", equalTo("admin")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "user-get-users",

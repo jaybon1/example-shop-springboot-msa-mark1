@@ -7,10 +7,10 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ResPostProductStockReleaseDtoV1 {
+public class ResPostInternalProductStockReturnDtoV1 {
 
     private final String productId;
     private final String orderId;
-    private final Long releasedQuantity;
+    private final Long returnedQuantity;
     private final Long currentStock;
 }

@@ -44,8 +44,8 @@ class OrderControllerV1Test {
     void getOrders_returnsDummyOrders() throws Exception {
         mockMvc.perform(get("/v1/orders"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.orderList", hasSize(2)))
-                .andExpect(jsonPath("$.data.orderList[0].status", equalTo("CREATED")))
+                .andExpect(jsonPath("$.data.orders", hasSize(2)))
+                .andExpect(jsonPath("$.data.orders[0].status", equalTo("CREATED")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "order-get-orders",

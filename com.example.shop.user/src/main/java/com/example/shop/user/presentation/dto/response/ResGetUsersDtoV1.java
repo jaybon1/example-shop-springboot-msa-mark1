@@ -10,7 +10,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ResGetUsersDtoV1 {
 
-    private final List<UserDto> userList;
+    private final List<UserDto> users;
 
     @Getter
     @Builder
