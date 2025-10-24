@@ -123,6 +123,19 @@
 1. Product Ledger/Reservation 설계 확정: 엔티티 스키마, 인덱스, 상태 머신 정의.
 2. 재고 차감/복원 시나리오 테스트: WireMock/Testcontainers 등으로 멀티 서비스 통합 테스트 전략을 수립(후속 작업).
 
+## User 서비스 (`com.example.shop.user`)
+
+### 인증 API (`/v1/auth`)
+
+| 메서드 | 엔드포인트 | 설명 | 요청 바디 | 정상 응답 |
+| --- | --- | --- | --- | --- |
+| POST | `/v1/auth/register` | 신규 사용자 등록 | `{"user": {"username","password","nickname","email"}}` | 200 + `ApiDto` 메시지 | 
+| POST | `/v1/auth/login` | 로그인 및 토큰 발급 | `{"user": {"username","password"}}` | 200 + `accessJwt`, `refreshJwt` |
+| POST | `/v1/auth/refresh` | 토큰 갱신 | `{"refreshJwt": "..."}` | 200 + 새 `accessJwt`, `refreshJwt` |
+| POST | `/v1/auth/access-token-check` | 액세스 토큰 검증 | `{"accessJwt": "..."}` | 200 + `valid`, `remainingSeconds` |
+
+> 현재 구현은 더미 토큰을 반환하며, 추후 실제 사용자/토큰 저장소와 연동해야 한다.
+
 ## 진행 메모 (미완료/추가 확인)
 - user 인증 API `/v1/auth/access-token-check` 응답 필드에서 `jwtValidatorTimestamp` 를 제거했음. 실제 구현 시 캐시 TTL 산출 로직과 문서 동기화 필요.
 - Product 내부 API(`stock-release`, `stock-return`) 는 현재 더미 응답이며 멱등성 검증/재고 처리 로직 확정이 필요하다.

@@ -56,6 +56,7 @@
 ## 진행 상황 메모
 - RestDocs 기반 컨트롤러 테스트 작성 완료: product / user / order / payment 서비스. product 내부 전용 API(`stock-release`, `stock-return`)까지 문서화 포함.
 - `user` 서비스 액세스 토큰 검증 응답에서 `jwtValidatorTimestamp` 필드를 제거했고 테스트/문서 스니펫 갱신 필요.
+- `user` 서비스 인증 엔드포인트(`register`, `login`, `refresh`, `access-token-check`) 더미 구현 및 RestDocs 연동 완료.
 - Resilience4j fallback 자동 구성은 의존성 버전을 낮춰 해결(설정 변경 무효화).
 
 ## 후속 작업 아이디어
