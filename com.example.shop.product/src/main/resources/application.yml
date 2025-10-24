@@ -8,3 +8,4 @@ spring:
       name: product-service
       profile: dev
       fail-fast: true
+

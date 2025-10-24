@@ -1,0 +1,13 @@
+spring:
+  config:
+    import: optional:classpath:/
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    discovery:
+      enabled: false
+eureka:
+  client:
+    enabled: false
