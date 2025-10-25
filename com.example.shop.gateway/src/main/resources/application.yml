@@ -1,12 +1,12 @@
 spring:
   application:
-    name: gateway-server
+    name: gateway-service
   main:
     web-application-type: reactive
   config:
     import: "configserver:http://localhost:19000"
   cloud:
     config:
-      name: gateway-server
+      name: gateway-service
       profile: dev
       fail-fast: true
