@@ -62,6 +62,7 @@ dependencies {
 
     // load balancer
     implementation "org.springframework.cloud:spring-cloud-starter-loadbalancer"
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 
     // circuit breaker
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
@@ -80,56 +81,56 @@ dependencyManagement {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }
 
 compileJava {
-	dependsOn 'clean'
+    dependsOn 'clean'
 }
 
 postman {
-	baseUrl = 'http://localhost:19200'
-	title = 'ORDER API'
-	version = '1.0.0'
+    baseUrl = 'http://localhost:19200'
+    title = 'ORDER API'
+    version = '1.0.0'
 }
 
 openapi3 {
-	servers = [
-			{
-				url = 'http://localhost:19200'
-			}
-	]
-	title = 'ORDER API'
-	description = ''
-	version = '1.0.0'
-	format = 'json'
+    servers = [
+            {
+                url = 'http://localhost:19200'
+            }
+    ]
+    title = 'ORDER API'
+    description = ''
+    version = '1.0.0'
+    format = 'json'
 }
 
 tasks.register('setDocs') {
-	dependsOn 'postman'
-	dependsOn 'openapi3'
-	doLast {
-		copy {
-			from "build/api-spec"
-			include "*.json"
-			include "*.yaml"
-			into "build/resources/main/static/springdoc"
-			rename { String fileName ->
-				if (fileName.endsWith('.json')) {
-					return fileName.replace('.json', '-order-service.json')
-				} else if (fileName.endsWith('.yaml')) {
-					return fileName.replace('.yaml', '-order-service.yml')
-				}
-				return fileName
-			}
-		}
-	}
+    dependsOn 'postman'
+    dependsOn 'openapi3'
+    doLast {
+        copy {
+            from "build/api-spec"
+            include "*.json"
+            include "*.yaml"
+            into "build/resources/main/static/springdoc"
+            rename { String fileName ->
+                if (fileName.endsWith('.json')) {
+                    return fileName.replace('.json', '-order-service.json')
+                } else if (fileName.endsWith('.yaml')) {
+                    return fileName.replace('.yaml', '-order-service.yml')
+                }
+                return fileName
+            }
+        }
+    }
 }
 
 bootRun {
-	dependsOn 'setDocs'
+    dependsOn 'setDocs'
 }
 
 bootJar {
-	dependsOn 'setDocs'
+    dependsOn 'setDocs'
 }
