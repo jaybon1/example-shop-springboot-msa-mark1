@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
+import org.springframework.http.HttpHeaders;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,7 +37,10 @@ class UserControllerV1Test {
     @Test
     @DisplayName("유저 목록 조회 시 더미 데이터가 반환된다")
     void getUsers_returnsDummyUsers() throws Exception {
-        mockMvc.perform(get("/v1/users"))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/users")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.users", hasSize(2)))
                 .andExpect(jsonPath("$.data.users[0].username", equalTo("admin")))
@@ -60,7 +65,10 @@ class UserControllerV1Test {
     void getUser_returnsRequestedId() throws Exception {
         UUID userId = UUID.fromString("33333333-3333-3333-3333-333333333333");
 
-        mockMvc.perform(get("/v1/users/{id}", userId))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/users/{id}", userId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.user.id", equalTo(userId.toString())))
                 .andExpect(jsonPath("$.data.user.nickname", equalTo("더미 유저")))
@@ -90,7 +98,10 @@ class UserControllerV1Test {
     void deleteUser_returnsSuccessMessage() throws Exception {
         UUID userId = UUID.fromString("44444444-4444-4444-4444-444444444444");
 
-        mockMvc.perform(delete("/v1/users/{id}", userId))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.delete("/v1/users/{id}", userId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo(userId + " 사용자가 삭제되었습니다.")))
                 .andDo(

@@ -10,6 +10,7 @@ import com.example.shop.user.presentation.dto.response.ResPostAuthAccessTokenChe
 import com.example.shop.user.presentation.dto.response.ResPostAuthLoginDtoV1;
 import com.example.shop.user.presentation.dto.response.ResPostAuthRefreshDtoV1;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,19 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/v1/auth")
+@RequiredArgsConstructor
 public class AuthControllerV1 {
 
-    private final AuthServiceV1 authService;
-
-    public AuthControllerV1(AuthServiceV1 authService) {
-        this.authService = authService;
-    }
+    private final AuthServiceV1 authServiceV1;
 
     @PostMapping("/register")
     public ResponseEntity<ApiDto<Object>> register(
             @RequestBody @Valid ReqPostAuthRegisterDtoV1 reqDto
     ) {
-        authService.register(reqDto);
+        authServiceV1.register(reqDto);
         return ResponseEntity.ok(
                 ApiDto.builder()
                         .message("회원가입이 완료되었습니다.")
@@ -42,7 +40,7 @@ public class AuthControllerV1 {
     public ResponseEntity<ApiDto<ResPostAuthLoginDtoV1>> login(
             @RequestBody @Valid ReqPostAuthLoginDtoV1 reqDto
     ) {
-        ResPostAuthLoginDtoV1 responseBody = authService.login(reqDto);
+        ResPostAuthLoginDtoV1 responseBody = authServiceV1.login(reqDto);
 
         return ResponseEntity.ok(
                 ApiDto.<ResPostAuthLoginDtoV1>builder()
@@ -56,7 +54,7 @@ public class AuthControllerV1 {
     public ResponseEntity<ApiDto<ResPostAuthRefreshDtoV1>> refresh(
             @RequestBody @Valid ReqAuthPostRefreshDtoV1 reqDto
     ) {
-        ResPostAuthRefreshDtoV1 responseBody = authService.refresh(reqDto);
+        ResPostAuthRefreshDtoV1 responseBody = authServiceV1.refresh(reqDto);
 
         return ResponseEntity.ok(
                 ApiDto.<ResPostAuthRefreshDtoV1>builder()
@@ -70,7 +68,7 @@ public class AuthControllerV1 {
     public ResponseEntity<ApiDto<ResPostAuthAccessTokenCheckDtoV1>> checkAccessToken(
             @RequestBody @Valid ReqPostAuthAccessTokenCheckDtoV1 reqDto
     ) {
-        ResPostAuthAccessTokenCheckDtoV1 responseBody = authService.checkAccessToken(reqDto);
+        ResPostAuthAccessTokenCheckDtoV1 responseBody = authServiceV1.checkAccessToken(reqDto);
 
         return ResponseEntity.ok(
                 ApiDto.<ResPostAuthAccessTokenCheckDtoV1>builder()

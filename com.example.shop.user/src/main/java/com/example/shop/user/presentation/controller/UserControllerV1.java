@@ -7,6 +7,8 @@ import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
 import com.example.shop.user.presentation.dto.response.ResGetUserDtoV1;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,13 +22,10 @@ import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequestMapping("/v1/users")
+@RequiredArgsConstructor
 public class UserControllerV1 {
 
-    private final UserServiceV1 userService;
-
-    public UserControllerV1(UserServiceV1 userService) {
-        this.userService = userService;
-    }
+    private final UserServiceV1 userServiceV1;
 
     @GetMapping
     public ResponseEntity<ApiDto<ResGetUsersDtoV1>> getUsers(
@@ -38,7 +37,7 @@ public class UserControllerV1 {
     ) {
         UUID authUserId = currentUser != null ? currentUser.getId() : null;
         List<String> authUserRoleList = currentUser != null ? currentUser.getRoleList() : List.of();
-        ResGetUsersDtoV1 responseBody = userService.getUsers(authUserId, authUserRoleList, pageable, username, nickname, email);
+        ResGetUsersDtoV1 responseBody = userServiceV1.getUsers(authUserId, authUserRoleList, pageable, username, nickname, email);
 
         return ResponseEntity.ok(
                 ApiDto.<ResGetUsersDtoV1>builder()
@@ -55,7 +54,7 @@ public class UserControllerV1 {
     ) {
         UUID authUserId = currentUser != null ? currentUser.getId() : null;
         List<String> authUserRoleList = currentUser != null ? currentUser.getRoleList() : List.of();
-        ResGetUserDtoV1 responseBody = userService.getUser(authUserId, authUserRoleList, userId);
+        ResGetUserDtoV1 responseBody = userServiceV1.getUser(authUserId, authUserRoleList, userId);
 
         return ResponseEntity.ok(
                 ApiDto.<ResGetUserDtoV1>builder()
@@ -72,7 +71,7 @@ public class UserControllerV1 {
     ) {
         UUID authUserId = currentUser != null ? currentUser.getId() : null;
         List<String> authUserRoleList = currentUser != null ? currentUser.getRoleList() : List.of();
-        userService.deleteUser(authUserId, authUserRoleList, userId);
+        userServiceV1.deleteUser(authUserId, authUserRoleList, userId);
         return ResponseEntity.ok(
                 ApiDto.builder()
                         .message(userId + " 사용자가 삭제되었습니다.")

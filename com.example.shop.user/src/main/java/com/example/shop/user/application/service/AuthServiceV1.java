@@ -104,6 +104,7 @@ public class AuthServiceV1 {
             decodedAccessJwt = verifyToken(reqDto.getAccessJwt(), jwtProperties.getAccessSubject());
         } catch (AuthException exception) {
             return ResPostAuthAccessTokenCheckDtoV1.builder()
+                    .userId(null)
                     .valid(false)
                     .remainingSeconds(0L)
                     .build();
@@ -112,14 +113,16 @@ public class AuthServiceV1 {
         Instant expiresAt = decodedAccessJwt.getExpiresAtAsInstant();
         if (expiresAt == null) {
             return ResPostAuthAccessTokenCheckDtoV1.builder()
+                    .userId(null)
                     .valid(false)
                     .remainingSeconds(0L)
                     .build();
         }
 
-        Optional<UUID> userId = parseUserId(decodedAccessJwt);
-        if (userId.isEmpty()) {
+        Optional<UUID> userIdOptional = parseUserId(decodedAccessJwt);
+        if (userIdOptional.isEmpty()) {
             return ResPostAuthAccessTokenCheckDtoV1.builder()
+                    .userId(null)
                     .valid(false)
                     .remainingSeconds(0L)
                     .build();
@@ -131,7 +134,8 @@ public class AuthServiceV1 {
             valid = false;
             remainingSeconds = 0;
         } else {
-            User user = userRepository.findById(userId.get())
+            UUID userId = userIdOptional.get();
+            User user = userRepository.findById(userId)
                     .orElse(null);
             if (user == null) {
                 valid = false;
@@ -145,6 +149,7 @@ public class AuthServiceV1 {
         }
 
         return ResPostAuthAccessTokenCheckDtoV1.builder()
+                .userId(valid ? userIdOptional.orElse(null) : null)
                 .valid(valid)
                 .remainingSeconds(remainingSeconds)
                 .build();
