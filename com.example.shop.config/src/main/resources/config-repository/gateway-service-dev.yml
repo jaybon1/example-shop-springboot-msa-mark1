@@ -2,8 +2,6 @@ server:
   port: 19200
 
 spring:
-  cache:
-    type: caffeine
   cloud:
     gateway:
       #      discovery:

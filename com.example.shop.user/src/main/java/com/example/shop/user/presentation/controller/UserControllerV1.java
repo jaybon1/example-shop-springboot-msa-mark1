@@ -2,7 +2,7 @@ package com.example.shop.user.presentation.controller;
 
 import com.example.shop.global.presentation.dto.ApiDto;
 import com.example.shop.user.application.service.UserServiceV1;
-import com.example.shop.user.infrastructure.config.security.auth.CustomUserDetails;
+import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
 import com.example.shop.user.presentation.dto.response.ResGetUserDtoV1;
 import java.util.List;
@@ -29,14 +29,14 @@ public class UserControllerV1 {
 
     @GetMapping
     public ResponseEntity<ApiDto<ResGetUsersDtoV1>> getUsers(
-            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PageableDefault Pageable pageable,
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "nickname", required = false) String nickname,
             @RequestParam(value = "email", required = false) String email
     ) {
-        UUID authUserId = currentUser != null ? currentUser.getId() : null;
-        List<String> authUserRoleList = currentUser != null ? currentUser.getRoleList() : List.of();
+        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
+        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
         ResGetUsersDtoV1 responseBody = userServiceV1.getUsers(authUserId, authUserRoleList, pageable, username, nickname, email);
 
         return ResponseEntity.ok(
@@ -49,11 +49,11 @@ public class UserControllerV1 {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiDto<ResGetUserDtoV1>> getUser(
-            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("id") UUID userId
     ) {
-        UUID authUserId = currentUser != null ? currentUser.getId() : null;
-        List<String> authUserRoleList = currentUser != null ? currentUser.getRoleList() : List.of();
+        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
+        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
         ResGetUserDtoV1 responseBody = userServiceV1.getUser(authUserId, authUserRoleList, userId);
 
         return ResponseEntity.ok(
@@ -66,11 +66,11 @@ public class UserControllerV1 {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiDto<Object>> deleteUser(
-            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("id") UUID userId
     ) {
-        UUID authUserId = currentUser != null ? currentUser.getId() : null;
-        List<String> authUserRoleList = currentUser != null ? currentUser.getRoleList() : List.of();
+        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
+        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
         userServiceV1.deleteUser(authUserId, authUserRoleList, userId);
         return ResponseEntity.ok(
                 ApiDto.builder()

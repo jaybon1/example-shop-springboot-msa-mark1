@@ -8,6 +8,14 @@ Zipkin 서버를 도커로 실행하려면 다음 명령어를 사용하세요:
 docker run -d -p 9411:9411 openzipkin/zipkin
 ```
 
+Redis 서버를 도커로 실행하려면 다음 명령어를 사용하세요:
+```shell
+cd redis # 필요 시
+docker-compose up -d
+cd .. # 필요 시
+```
+
+
 그런 다음, 각 마이크로서비스를 다음 순서로 실행하세요:
 1. Config 서비스
 2. Eureka 서비스

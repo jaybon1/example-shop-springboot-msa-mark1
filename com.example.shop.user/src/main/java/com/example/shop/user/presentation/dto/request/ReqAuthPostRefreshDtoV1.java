@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ReqAuthPostRefreshDtoV1 {
 
     @NotBlank(message = "리프레시 토큰을 입력해주세요.")

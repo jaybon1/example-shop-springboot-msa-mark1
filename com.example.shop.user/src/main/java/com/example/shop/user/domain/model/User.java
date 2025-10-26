@@ -38,6 +38,12 @@ public class User {
                 .anyMatch(role::equals);
     }
 
+    public User updateJwtValidator(Long jwtValidator) {
+        return this.toBuilder()
+                .jwtValidator(jwtValidator)
+                .build();
+    }
+
     public User markDeleted(Instant deletedAt, UUID userId) {
         return this.toBuilder()
                 .deletedAt(deletedAt)

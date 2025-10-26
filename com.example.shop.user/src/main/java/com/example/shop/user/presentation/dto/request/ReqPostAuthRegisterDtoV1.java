@@ -12,8 +12,6 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ReqPostAuthRegisterDtoV1 {
 
     @NotNull(message = "회원 정보를 입력해주세요.")
@@ -22,8 +20,6 @@ public class ReqPostAuthRegisterDtoV1 {
 
     @Getter
     @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class UserDto {
 
         @NotBlank(message = "아이디를 입력해주세요.")

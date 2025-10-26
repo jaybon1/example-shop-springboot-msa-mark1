@@ -33,9 +33,7 @@ dependencies {
 //    implementation 'com.github.jaybon1:example-shop-springboot-msa-global:0.0.2'
 
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
-    implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
@@ -46,6 +44,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    implementation "org.springframework.cloud:spring-cloud-starter-loadbalancer"
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    implementation 'com.auth0:java-jwt:4.4.0'
 
     // swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.13'

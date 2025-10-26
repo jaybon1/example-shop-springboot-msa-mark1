@@ -2,20 +2,22 @@ package com.example.shop.user.presentation.controller;
 
 import com.example.shop.global.presentation.dto.ApiDto;
 import com.example.shop.user.application.service.AuthServiceV1;
-import com.example.shop.user.presentation.dto.request.ReqAuthPostRefreshDtoV1;
-import com.example.shop.user.presentation.dto.request.ReqPostAuthAccessTokenCheckDtoV1;
-import com.example.shop.user.presentation.dto.request.ReqPostAuthLoginDtoV1;
-import com.example.shop.user.presentation.dto.request.ReqPostAuthRegisterDtoV1;
-import com.example.shop.user.presentation.dto.response.ResPostAuthAccessTokenCheckDtoV1;
+import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
+import com.example.shop.user.presentation.dto.request.*;
+import com.example.shop.user.presentation.dto.response.ResPostAuthCheckAccessTokenDtoV1;
 import com.example.shop.user.presentation.dto.response.ResPostAuthLoginDtoV1;
 import com.example.shop.user.presentation.dto.response.ResPostAuthRefreshDtoV1;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -64,17 +66,33 @@ public class AuthControllerV1 {
         );
     }
 
-    @PostMapping("/access-token-check")
-    public ResponseEntity<ApiDto<ResPostAuthAccessTokenCheckDtoV1>> checkAccessToken(
-            @RequestBody @Valid ReqPostAuthAccessTokenCheckDtoV1 reqDto
+    @PostMapping("/check-access-token")
+    public ResponseEntity<ApiDto<ResPostAuthCheckAccessTokenDtoV1>> checkAccessToken(
+            @RequestBody @Valid ReqPostAuthCheckAccessTokenDtoV1 reqDto
     ) {
-        ResPostAuthAccessTokenCheckDtoV1 responseBody = authServiceV1.checkAccessToken(reqDto);
+        ResPostAuthCheckAccessTokenDtoV1 responseBody = authServiceV1.checkAccessToken(reqDto);
 
         return ResponseEntity.ok(
-                ApiDto.<ResPostAuthAccessTokenCheckDtoV1>builder()
+                ApiDto.<ResPostAuthCheckAccessTokenDtoV1>builder()
                         .message("액세스 토큰 검증이 완료되었습니다.")
                         .data(responseBody)
                         .build()
         );
     }
+
+    @PostMapping("/invalidate-before-token")
+    public ResponseEntity<ApiDto<Object>> invalidateBeforeToken(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @RequestBody @Valid ReqPostAuthInvalidateBeforeTokenDtoV1 reqDto
+    ) {
+        UUID authUserId = customUserDetails.getId();
+        List<String> authRoleList = customUserDetails.getRoleList();
+        authServiceV1.invalidateBeforeToken(authUserId, authRoleList, reqDto);
+        return ResponseEntity.ok(
+                ApiDto.builder()
+                        .message("모든 기기에서 로그아웃 되었습니다.")
+                        .build()
+        );
+    }
+
 }

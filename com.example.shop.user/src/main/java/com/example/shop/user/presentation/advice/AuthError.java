@@ -13,7 +13,7 @@ public enum AuthError implements GlobalError {
     AUTH_USERNAME_NOT_EXIST(HttpStatus.BAD_REQUEST, "아이디를 정확히 입력해주세요."),
     AUTH_PASSWORD_NOT_MATCHED(HttpStatus.BAD_REQUEST, "비밀번호를 정확히 입력해주세요."),
     AUTH_USER_CAN_NOT_FOUND(HttpStatus.BAD_REQUEST, "해당 유저를 찾을 수 없습니다."),
-    AUTH_REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
+    AUTH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
 
     private final HttpStatus httpStatus;
     private final String errorMessage;

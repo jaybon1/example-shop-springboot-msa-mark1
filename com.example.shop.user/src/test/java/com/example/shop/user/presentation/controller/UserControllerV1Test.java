@@ -1,28 +1,14 @@
 package com.example.shop.user.presentation.controller;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
 import com.example.shop.user.application.service.UserServiceV1;
-import com.example.shop.user.infrastructure.config.security.jwt.JwtProperties;
+import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.user.presentation.dto.response.ResGetUserDtoV1;
 import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -37,7 +23,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.UUID;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(value = UserControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -58,11 +56,27 @@ class UserControllerV1Test {
     @Autowired
     private UserServiceV1 userServiceV1;
 
+    @DynamicPropertySource
+    static void jwtProperties(DynamicPropertyRegistry registry) {
+        registry.add("shop.security.jwt.secret", () -> "testsalt");
+        registry.add("shop.security.jwt.access-expiration-millis", () -> 1_800_000L);
+        registry.add("shop.security.jwt.refresh-expiration-millis", () -> 15_552_000_000L);
+        registry.add("shop.security.jwt.access-header-name", () -> "Authorization");
+        registry.add("shop.security.jwt.header-prefix", () -> "Bearer ");
+        registry.add("shop.security.jwt.access-subject", () -> "accessJwt");
+        registry.add("shop.security.jwt.refresh-subject", () -> "refreshJwt");
+    }
+
     @TestConfiguration
     static class MockConfig {
         @Bean
         UserServiceV1 userServiceV1() {
             return Mockito.mock(UserServiceV1.class);
+        }
+
+        @Bean
+        AuthRedisClient authRedisClient() {
+            return Mockito.mock(AuthRedisClient.class);
         }
     }
 
@@ -70,20 +84,22 @@ class UserControllerV1Test {
     @DisplayName("유저 목록 조회 시 더미 데이터가 반환된다")
     void getUsers_returnsDummyUsers() throws Exception {
         ResGetUsersDtoV1 response = ResGetUsersDtoV1.builder()
-                .users(List.of(
-                        ResGetUsersDtoV1.UserDto.builder()
-                                .id("11111111-1111-1111-1111-111111111111")
-                                .username("admin")
-                                .nickname("관리자")
-                                .email("admin@example.com")
-                                .build(),
-                        ResGetUsersDtoV1.UserDto.builder()
-                                .id("22222222-2222-2222-2222-222222222222")
-                                .username("user1")
-                                .nickname("사용자1")
-                                .email("user1@example.com")
-                                .build()
-                ))
+                .userPage(
+                        new ResGetUsersDtoV1.UserPageDto(
+                                ResGetUsersDtoV1.UserPageDto.UserDto.builder()
+                                        .id("11111111-1111-1111-1111-111111111111")
+                                        .username("admin")
+                                        .nickname("관리자")
+                                        .email("admin@example.com")
+                                        .build(),
+                                ResGetUsersDtoV1.UserPageDto.UserDto.builder()
+                                        .id("22222222-2222-2222-2222-222222222222")
+                                        .username("user1")
+                                        .nickname("사용자1")
+                                        .email("user1@example.com")
+                                        .build()
+                        )
+                )
                 .build();
         given(userServiceV1.getUsers(any(), anyList(), any(Pageable.class), nullable(String.class), nullable(String.class), nullable(String.class)))
                 .willReturn(response);
@@ -93,8 +109,8 @@ class UserControllerV1Test {
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.users", hasSize(2)))
-                .andExpect(jsonPath("$.data.users[0].username", equalTo("admin")))
+                .andExpect(jsonPath("$.data.userPage.content", hasSize(2)))
+                .andExpect(jsonPath("$.data.userPage.content[0].username", equalTo("admin")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "user-get-users",

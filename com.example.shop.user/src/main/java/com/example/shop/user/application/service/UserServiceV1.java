@@ -3,6 +3,7 @@ package com.example.shop.user.application.service;
 import com.example.shop.user.domain.model.User;
 import com.example.shop.user.domain.model.UserRole;
 import com.example.shop.user.domain.repository.UserRepository;
+import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
 import com.example.shop.user.presentation.advice.UserError;
 import com.example.shop.user.presentation.advice.UserException;
 import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
@@ -27,6 +28,8 @@ public class UserServiceV1 {
 
     private final UserRepository userRepository;
 
+    private final AuthRedisClient authRedisClient;
+
     public ResGetUsersDtoV1 getUsers(
             UUID authUserId,
             List<String> authUserRoleList,
@@ -46,7 +49,7 @@ public class UserServiceV1 {
             if (authUserId == null) {
                 throw new UserException(UserError.USER_BAD_REQUEST);
             }
-            User user = getUserOrThrow(authUserId);
+            User user = getAuthUserOrThrow(authUserId);
             if (!matchesFilter(user, normalizedUsername, normalizedNickname, normalizedEmail)) {
                 userPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
             } else if (pageable.isPaged() && pageable.getPageNumber() > 0) {
@@ -56,22 +59,13 @@ public class UserServiceV1 {
             }
         }
 
-        List<ResGetUsersDtoV1.UserDto> userDtoList = userPage.getContent()
-                .stream()
-                .map(this::toUserDto)
-                .toList();
-
-        return ResGetUsersDtoV1.builder()
-                .users(userDtoList)
-                .build();
+        return ResGetUsersDtoV1.of(userPage);
     }
 
     public ResGetUserDtoV1 getUser(UUID authUserId, List<String> authUserRoleList, UUID userId) {
         User user = getUserOrThrow(userId);
         validateAccess(authUserId, authUserRoleList, user);
-        return ResGetUserDtoV1.builder()
-                .user(toUserDetailsDto(user))
-                .build();
+        return ResGetUserDtoV1.of(user);
     }
 
     @Transactional
@@ -85,25 +79,8 @@ public class UserServiceV1 {
             throw new UserException(UserError.USER_BAD_REQUEST);
         }
         User deletedUser = user.markDeleted(Instant.now(), authUserId);
+        authRedisClient.denyBy(deletedUser.getId().toString(), Instant.now().getEpochSecond());
         userRepository.save(deletedUser);
-    }
-
-    private ResGetUsersDtoV1.UserDto toUserDto(User user) {
-        return ResGetUsersDtoV1.UserDto.builder()
-                .id(user.getId() != null ? user.getId().toString() : null)
-                .username(user.getUsername())
-                .nickname(user.getNickname())
-                .email(user.getEmail())
-                .build();
-    }
-
-    private ResGetUserDtoV1.UserDto toUserDetailsDto(User user) {
-        return ResGetUserDtoV1.UserDto.builder()
-                .id(user.getId() != null ? user.getId().toString() : null)
-                .username(user.getUsername())
-                .nickname(user.getNickname())
-                .email(user.getEmail())
-                .build();
     }
 
     private void validateAccess(UUID authUserId, List<String> authUserRoleList, User targetUser) {
@@ -120,6 +97,11 @@ public class UserServiceV1 {
             return;
         }
         throw new UserException(UserError.USER_BAD_REQUEST);
+    }
+
+    private User getAuthUserOrThrow(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserError.USER_BAD_REQUEST));
     }
 
     private User getUserOrThrow(UUID userId) {

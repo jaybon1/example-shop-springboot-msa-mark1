@@ -2,30 +2,37 @@ package com.example.shop.user.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
-import com.epages.restdocs.apispec.SimpleType;
 import com.example.shop.user.application.service.AuthServiceV1;
-import com.example.shop.user.infrastructure.config.security.jwt.JwtProperties;
+import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
+import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.user.presentation.dto.request.ReqAuthPostRefreshDtoV1;
-import com.example.shop.user.presentation.dto.request.ReqPostAuthAccessTokenCheckDtoV1;
+import com.example.shop.user.presentation.dto.request.ReqPostAuthCheckAccessTokenDtoV1;
+import com.example.shop.user.presentation.dto.request.ReqPostAuthInvalidateBeforeTokenDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthLoginDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthRegisterDtoV1;
-import com.example.shop.user.presentation.dto.response.ResPostAuthAccessTokenCheckDtoV1;
+import com.example.shop.user.presentation.dto.response.ResPostAuthCheckAccessTokenDtoV1;
 import com.example.shop.user.presentation.dto.response.ResPostAuthLoginDtoV1;
 import com.example.shop.user.presentation.dto.response.ResPostAuthRefreshDtoV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.UUID;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -35,7 +42,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 @WebMvcTest(value = AuthControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -57,11 +68,32 @@ class AuthControllerV1Test {
     @Autowired
     private AuthServiceV1 authServiceV1;
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @DynamicPropertySource
+    static void jwtProperties(DynamicPropertyRegistry registry) {
+        registry.add("shop.security.jwt.secret", () -> "testsalt");
+        registry.add("shop.security.jwt.access-expiration-millis", () -> 1_800_000L);
+        registry.add("shop.security.jwt.refresh-expiration-millis", () -> 15_552_000_000L);
+        registry.add("shop.security.jwt.access-header-name", () -> "Authorization");
+        registry.add("shop.security.jwt.header-prefix", () -> "Bearer ");
+        registry.add("shop.security.jwt.access-subject", () -> "accessJwt");
+        registry.add("shop.security.jwt.refresh-subject", () -> "refreshJwt");
+    }
+
     @TestConfiguration
     static class MockConfig {
         @Bean
         AuthServiceV1 authServiceV1() {
             return Mockito.mock(AuthServiceV1.class);
+        }
+
+        @Bean
+        AuthRedisClient authRedisClient() {
+            return Mockito.mock(AuthRedisClient.class);
         }
     }
 
@@ -180,18 +212,18 @@ class AuthControllerV1Test {
     @Test
     @DisplayName("액세스 토큰 검증 요청 시 더미 응답을 반환한다")
     void checkAccessToken_returnsDummyResponse() throws Exception {
-        ReqPostAuthAccessTokenCheckDtoV1 request = ReqPostAuthAccessTokenCheckDtoV1.builder()
+        ReqPostAuthCheckAccessTokenDtoV1 request = ReqPostAuthCheckAccessTokenDtoV1.builder()
                 .accessJwt("dummy.jwt.token")
                 .build();
 
-        ResPostAuthAccessTokenCheckDtoV1 response = ResPostAuthAccessTokenCheckDtoV1.builder()
-                .userId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
+        ResPostAuthCheckAccessTokenDtoV1 response = ResPostAuthCheckAccessTokenDtoV1.builder()
+                .userId("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
                 .valid(true)
                 .remainingSeconds(10L)
                 .build();
-        given(authServiceV1.checkAccessToken(any(ReqPostAuthAccessTokenCheckDtoV1.class))).willReturn(response);
+        given(authServiceV1.checkAccessToken(any(ReqPostAuthCheckAccessTokenDtoV1.class))).willReturn(response);
 
-        mockMvc.perform(post("/v1/auth/access-token-check")
+        mockMvc.perform(post("/v1/auth/check-access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -211,5 +243,62 @@ class AuthControllerV1Test {
                                 )
                         )
                 );
+    }
+
+    @Test
+    @DisplayName("이전 토큰 무효화 요청 시 현재 사용자 정보를 사용해 서비스를 호출한다")
+    void invalidateBeforeToken_delegatesToService() throws Exception {
+        UUID authUserId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        List<String> roleList = List.of("USER", "ADMIN");
+        CustomUserDetails principal = CustomUserDetails.builder()
+                .id(authUserId)
+                .username("dummy_user")
+                .password("encoded-password")
+                .email("dummy@example.com")
+                .roleList(roleList)
+                .build();
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                principal, null, principal.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        ReqPostAuthInvalidateBeforeTokenDtoV1 request = ReqPostAuthInvalidateBeforeTokenDtoV1.builder()
+                .user(
+                        ReqPostAuthInvalidateBeforeTokenDtoV1.UserDto.builder()
+                                .id(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
+                                .build()
+                )
+                .build();
+
+        willDoNothing().given(authServiceV1)
+                .invalidateBeforeToken(any(UUID.class), anyList(), any(ReqPostAuthInvalidateBeforeTokenDtoV1.class));
+
+        mockMvc.perform(post("/v1/auth/invalidate-before-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", equalTo("모든 기기에서 로그아웃 되었습니다.")))
+                .andDo(
+                        MockMvcRestDocumentationWrapper.document(
+                                "auth-invalidate-before-token",
+                                Preprocessors.preprocessRequest(Preprocessors.prettyPrint()),
+                                Preprocessors.preprocessResponse(Preprocessors.prettyPrint()),
+                                ResourceDocumentation.resource(
+                                        ResourceSnippetParameters.builder()
+                                                .tag("Auth V1")
+                                                .summary("이전 토큰 무효화")
+                                                .description("사용자 기준으로 이전에 발급된 토큰을 무효화합니다.")
+                                                .build()
+                                )
+                        )
+                );
+
+        ArgumentCaptor<List<String>> roleCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<ReqPostAuthInvalidateBeforeTokenDtoV1> requestCaptor = ArgumentCaptor.forClass(ReqPostAuthInvalidateBeforeTokenDtoV1.class);
+
+        Mockito.verify(authServiceV1)
+                .invalidateBeforeToken(Mockito.eq(authUserId), roleCaptor.capture(), requestCaptor.capture());
+
+        assertEquals(roleList, roleCaptor.getValue());
+        assertEquals(request.getUser().getId(), requestCaptor.getValue().getUser().getId());
     }
 }
