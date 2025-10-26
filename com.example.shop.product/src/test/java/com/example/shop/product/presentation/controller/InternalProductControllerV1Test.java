@@ -1,7 +1,6 @@
 package com.example.shop.product.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,7 +17,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,6 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 @AutoConfigureRestDocs
 class InternalProductControllerV1Test {
+
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,9 +50,12 @@ class InternalProductControllerV1Test {
 
         UUID productId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
-        mockMvc.perform(post("/internal/v1/products/{productId}/stock-release", productId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/stock-release", productId)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code", equalTo("PRODUCT_STOCK_RELEASED")))
                 .andExpect(jsonPath("$.data.productId", equalTo(productId.toString())))
@@ -85,9 +91,12 @@ class InternalProductControllerV1Test {
 
         UUID productId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
 
-        mockMvc.perform(post("/internal/v1/products/{productId}/stock-return", productId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/stock-return", productId)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code", equalTo("PRODUCT_STOCK_RETURNED")))
                 .andExpect(jsonPath("$.data.productId", equalTo(productId.toString())))

@@ -1,8 +1,6 @@
 package com.example.shop.payment.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,7 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -31,6 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureRestDocs
 class PaymentControllerV1Test {
 
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -42,7 +44,10 @@ class PaymentControllerV1Test {
     void getPayment_returnsDummyData() throws Exception {
         UUID paymentId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
-        mockMvc.perform(get("/v1/payments/{id}", paymentId))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/payments/{id}", paymentId)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.payment.id", equalTo(paymentId.toString())))
                 .andExpect(jsonPath("$.data.payment.status", equalTo("COMPLETED")))
@@ -76,9 +81,12 @@ class PaymentControllerV1Test {
                 .amount(50_000L)
                 .build();
 
-        mockMvc.perform(post("/v1/payments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.post("/v1/payments")
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo("결제가 완료되었습니다.")))
                 .andExpect(jsonPath("$.data.payment.method", equalTo("CARD")))

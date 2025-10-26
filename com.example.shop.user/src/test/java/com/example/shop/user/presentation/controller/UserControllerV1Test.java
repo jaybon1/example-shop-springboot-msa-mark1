@@ -31,6 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureRestDocs
 class UserControllerV1Test {
 
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -39,7 +41,7 @@ class UserControllerV1Test {
     void getUsers_returnsDummyUsers() throws Exception {
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/users")
-                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.users", hasSize(2)))
@@ -67,7 +69,7 @@ class UserControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/users/{id}", userId)
-                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.user.id", equalTo(userId.toString())))
@@ -100,7 +102,7 @@ class UserControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.delete("/v1/users/{id}", userId)
-                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo(userId + " 사용자가 삭제되었습니다.")))

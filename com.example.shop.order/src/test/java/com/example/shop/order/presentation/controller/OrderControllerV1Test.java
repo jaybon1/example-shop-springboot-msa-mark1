@@ -2,8 +2,6 @@ package com.example.shop.order.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -20,8 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.restdocs.operation.preprocess.Preprocessors;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
+import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(value = OrderControllerV1.class, properties = {
@@ -33,6 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureRestDocs
 class OrderControllerV1Test {
 
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -42,7 +44,10 @@ class OrderControllerV1Test {
     @Test
     @DisplayName("주문 목록 조회 시 두 건의 더미 주문을 반환한다")
     void getOrders_returnsDummyOrders() throws Exception {
-        mockMvc.perform(get("/v1/orders"))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/orders")
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.orders", hasSize(2)))
                 .andExpect(jsonPath("$.data.orders[0].status", equalTo("CREATED")))
@@ -67,7 +72,10 @@ class OrderControllerV1Test {
     void getOrder_returnsRequestedId() throws Exception {
         UUID orderId = UUID.fromString("aaaaaaaa-0000-0000-0000-aaaaaaaa0000");
 
-        mockMvc.perform(get("/v1/orders/{id}", orderId))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/orders/{id}", orderId)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.order.id", equalTo(orderId.toString())))
                 .andExpect(jsonPath("$.data.order.orderItemList", hasSize(2)))
@@ -108,9 +116,12 @@ class OrderControllerV1Test {
                 )
                 .build();
 
-        mockMvc.perform(post("/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.post("/v1/orders")
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo("주문이 생성되었습니다.")))
                 .andExpect(jsonPath("$.data.order.status", equalTo("CREATED")))
@@ -135,7 +146,10 @@ class OrderControllerV1Test {
     void cancelOrder_returnsSuccessMessage() throws Exception {
         UUID orderId = UUID.fromString("bbbbbbbb-0000-0000-0000-bbbbbbbb0000");
 
-        mockMvc.perform(post("/v1/orders/{id}/cancel", orderId))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.post("/v1/orders/{id}/cancel", orderId)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo(orderId + " 주문이 취소되었습니다.")))
                 .andDo(

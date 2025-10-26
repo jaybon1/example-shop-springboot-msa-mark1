@@ -2,8 +2,6 @@ package com.example.shop.product.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,7 +17,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,6 +32,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureRestDocs
 class ProductControllerV1Test {
 
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -41,7 +43,10 @@ class ProductControllerV1Test {
     @Test
     @DisplayName("상품 목록 조회 시 더미 데이터가 반환된다")
     void getProducts_returnsDummyList() throws Exception {
-        mockMvc.perform(get("/v1/products"))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/products")
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.products", hasSize(2)))
                 .andExpect(jsonPath("$.data.products[0].name", equalTo("샘플 상품 A")))
@@ -66,7 +71,10 @@ class ProductControllerV1Test {
     void getProduct_returnsRequestedId() throws Exception {
         UUID productId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
-        mockMvc.perform(get("/v1/products/{id}", productId))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.get("/v1/products/{id}", productId)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.product.id", equalTo(productId.toString())))
                 .andExpect(jsonPath("$.data.product.name", equalTo("단일 상품")))
@@ -104,9 +112,12 @@ class ProductControllerV1Test {
                 )
                 .build();
 
-        mockMvc.perform(post("/v1/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.post("/v1/products")
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo("상품 등록이 완료되었습니다.")))
                 .andExpect(jsonPath("$.data.product.id").exists())
