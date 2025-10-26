@@ -1,6 +1,9 @@
 package com.example.shop.user.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,16 +12,27 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
+import com.example.shop.user.application.service.AuthServiceV1;
+import com.example.shop.user.infrastructure.config.security.jwt.JwtProperties;
 import com.example.shop.user.presentation.dto.request.ReqAuthPostRefreshDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthAccessTokenCheckDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthLoginDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthRegisterDtoV1;
+import com.example.shop.user.presentation.dto.response.ResPostAuthAccessTokenCheckDtoV1;
+import com.example.shop.user.presentation.dto.response.ResPostAuthLoginDtoV1;
+import com.example.shop.user.presentation.dto.response.ResPostAuthRefreshDtoV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
+import org.mockito.Mockito;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +44,8 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.config.import=optional:classpath:/"
 })
 @AutoConfigureRestDocs
+@AutoConfigureMockMvc(addFilters = false)
+@Import({JwtProperties.class, AuthControllerV1Test.MockConfig.class})
 class AuthControllerV1Test {
 
     @Autowired
@@ -37,6 +53,17 @@ class AuthControllerV1Test {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private AuthServiceV1 authServiceV1;
+
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        AuthServiceV1 authServiceV1() {
+            return Mockito.mock(AuthServiceV1.class);
+        }
+    }
 
     @Test
     @DisplayName("회원 가입 요청 시 성공 메시지를 반환한다")
@@ -51,6 +78,8 @@ class AuthControllerV1Test {
                                 .build()
                 )
                 .build();
+
+        willDoNothing().given(authServiceV1).register(any(ReqPostAuthRegisterDtoV1.class));
 
         mockMvc.perform(post("/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -85,6 +114,12 @@ class AuthControllerV1Test {
                 )
                 .build();
 
+        ResPostAuthLoginDtoV1 response = ResPostAuthLoginDtoV1.builder()
+                .accessJwt("dummy-access-token")
+                .refreshJwt("dummy-refresh-token")
+                .build();
+        given(authServiceV1.login(any(ReqPostAuthLoginDtoV1.class))).willReturn(response);
+
         mockMvc.perform(post("/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -114,6 +149,12 @@ class AuthControllerV1Test {
                 .refreshJwt("refresh-dummy-token")
                 .build();
 
+        ResPostAuthRefreshDtoV1 response = ResPostAuthRefreshDtoV1.builder()
+                .accessJwt("new-access-token")
+                .refreshJwt("new-refresh-token")
+                .build();
+        given(authServiceV1.refresh(any(ReqAuthPostRefreshDtoV1.class))).willReturn(response);
+
         mockMvc.perform(post("/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -142,6 +183,13 @@ class AuthControllerV1Test {
         ReqPostAuthAccessTokenCheckDtoV1 request = ReqPostAuthAccessTokenCheckDtoV1.builder()
                 .accessJwt("dummy.jwt.token")
                 .build();
+
+        ResPostAuthAccessTokenCheckDtoV1 response = ResPostAuthAccessTokenCheckDtoV1.builder()
+                .userId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
+                .valid(true)
+                .remainingSeconds(10L)
+                .build();
+        given(authServiceV1.checkAccessToken(any(ReqPostAuthAccessTokenCheckDtoV1.class))).willReturn(response);
 
         mockMvc.perform(post("/v1/auth/access-token-check")
                         .contentType(MediaType.APPLICATION_JSON)

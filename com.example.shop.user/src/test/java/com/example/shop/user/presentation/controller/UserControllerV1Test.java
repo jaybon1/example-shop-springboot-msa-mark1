@@ -2,6 +2,12 @@ package com.example.shop.user.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,12 +17,23 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
+import com.example.shop.user.application.service.UserServiceV1;
+import com.example.shop.user.infrastructure.config.security.jwt.JwtProperties;
+import com.example.shop.user.presentation.dto.response.ResGetUserDtoV1;
+import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
@@ -29,6 +46,8 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.config.import=optional:classpath:/"
 })
 @AutoConfigureRestDocs
+@AutoConfigureMockMvc(addFilters = false)
+@Import({JwtProperties.class, UserControllerV1Test.MockConfig.class})
 class UserControllerV1Test {
 
     private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
@@ -36,12 +55,42 @@ class UserControllerV1Test {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private UserServiceV1 userServiceV1;
+
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        UserServiceV1 userServiceV1() {
+            return Mockito.mock(UserServiceV1.class);
+        }
+    }
+
     @Test
     @DisplayName("유저 목록 조회 시 더미 데이터가 반환된다")
     void getUsers_returnsDummyUsers() throws Exception {
+        ResGetUsersDtoV1 response = ResGetUsersDtoV1.builder()
+                .users(List.of(
+                        ResGetUsersDtoV1.UserDto.builder()
+                                .id("11111111-1111-1111-1111-111111111111")
+                                .username("admin")
+                                .nickname("관리자")
+                                .email("admin@example.com")
+                                .build(),
+                        ResGetUsersDtoV1.UserDto.builder()
+                                .id("22222222-2222-2222-2222-222222222222")
+                                .username("user1")
+                                .nickname("사용자1")
+                                .email("user1@example.com")
+                                .build()
+                ))
+                .build();
+        given(userServiceV1.getUsers(any(), anyList(), any(Pageable.class), nullable(String.class), nullable(String.class), nullable(String.class)))
+                .willReturn(response);
+
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/users")
-                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + DUMMY_BEARER_TOKEN)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.users", hasSize(2)))
@@ -66,10 +115,21 @@ class UserControllerV1Test {
     @DisplayName("유저 단건 조회 시 요청 ID가 응답에 포함된다")
     void getUser_returnsRequestedId() throws Exception {
         UUID userId = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        ResGetUserDtoV1 response = ResGetUserDtoV1.builder()
+                .user(
+                        ResGetUserDtoV1.UserDto.builder()
+                                .id(userId.toString())
+                                .username("dummy-user")
+                                .nickname("더미 유저")
+                                .email("dummy@example.com")
+                                .build()
+                )
+                .build();
+        given(userServiceV1.getUser(any(), anyList(), eq(userId))).willReturn(response);
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/users/{id}", userId)
-                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + DUMMY_BEARER_TOKEN)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.user.id", equalTo(userId.toString())))
@@ -99,10 +159,11 @@ class UserControllerV1Test {
     @DisplayName("유저 삭제 시 성공 메시지를 반환한다")
     void deleteUser_returnsSuccessMessage() throws Exception {
         UUID userId = UUID.fromString("44444444-4444-4444-4444-444444444444");
+        willDoNothing().given(userServiceV1).deleteUser(any(), anyList(), eq(userId));
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.delete("/v1/users/{id}", userId)
-                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + DUMMY_BEARER_TOKEN)
+                                .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo(userId + " 사용자가 삭제되었습니다.")))

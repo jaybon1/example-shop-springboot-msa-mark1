@@ -27,7 +27,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     @Nullable
-    @Value("${spring.profiles.active:}")
+    @Value("${spring.cloud.config.profile}")
     private String activeProfile;
 
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
@@ -35,26 +35,26 @@ public class SecurityConfig {
     private final JwtAuthorizationFilter jwtAuthorizationFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable());
-        http.formLogin(form -> form.disable());
-        http.httpBasic(basic -> basic.disable());
-        http.logout(logout -> logout.disable());
-        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
-        http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.csrf(csrf -> csrf.disable());
+        httpSecurity.formLogin(form -> form.disable());
+        httpSecurity.httpBasic(basic -> basic.disable());
+        httpSecurity.logout(logout -> logout.disable());
+        httpSecurity.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+        httpSecurity.headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
-        http.exceptionHandling(handler -> handler
+        httpSecurity.exceptionHandling(handler -> handler
                 .authenticationEntryPoint(customAuthenticationEntryPoint)
                 .accessDeniedHandler(customAccessDeniedHandler));
 
-        http.addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
+        httpSecurity.addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        http.authorizeHttpRequests(authorize -> {
+        httpSecurity.authorizeHttpRequests(authorize -> {
             if ("dev".equalsIgnoreCase(activeProfile)) {
-                authorize.requestMatchers("/h2-console/**").permitAll();
+                authorize.requestMatchers("/h2/**").permitAll();
             } else {
-                authorize.requestMatchers("/h2-console/**").hasRole("ADMIN");
+                authorize.requestMatchers("/h2/**").hasRole("ADMIN");
             }
 
             authorize.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
@@ -70,10 +70,11 @@ public class SecurityConfig {
                     "/actuator/info"
             ).permitAll();
             authorize.requestMatchers("/v1/auth/**").permitAll();
+            authorize.requestMatchers("/actuator/**").hasRole("ADMIN");
             authorize.anyRequest().authenticated();
         });
 
-        return http.build();
+        return httpSecurity.build();
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
