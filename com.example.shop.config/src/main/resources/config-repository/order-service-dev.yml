@@ -1,6 +1,29 @@
 server:
   port: 19500
 
+spring:
+  datasource:
+    url: jdbc:h2:mem:test;MODE=MySQL;DB_CLOSE_DELAY=-1 # 실제 서비스에서는 env 등으로 관리
+    driverClassName: org.h2.Driver
+    username: sa # 실제 서비스에서는 env 등으로 관리
+    password: # 실제 서비스에서는 env 등으로 관리
+  h2:
+    console:
+      enabled: true
+      path: /h2
+  jpa:
+    defer-datasource-initialization: true
+    open-in-view: false # 트랜잭션 범위 밖에서 영속성 컨텍스트를 유지할지 여부
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update # create-drop, update, validate, none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 500
+        use_sql_comments: true
+
 management:
   zipkin:
     tracing:

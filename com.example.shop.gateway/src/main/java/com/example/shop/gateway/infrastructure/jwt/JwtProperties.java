@@ -1,4 +1,4 @@
-package com.example.shop.user.infrastructure.config.security.jwt;
+package com.example.shop.gateway.infrastructure.jwt;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
