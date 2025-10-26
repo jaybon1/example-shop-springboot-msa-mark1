@@ -9,7 +9,8 @@ import java.util.UUID;
 @Builder
 public class ResPostAuthAccessTokenCheckDtoV1 {
 
-    private final UUID userId;
-    private final boolean valid;
-    private final long remainingSeconds;
+    private UUID userId;
+    private boolean valid;
+    private long remainingSeconds;
+
 }
