@@ -2,6 +2,10 @@ server:
   port: 19600
 
 spring:
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: true
   datasource:
     url: jdbc:h2:mem:test;MODE=MySQL;DB_CLOSE_DELAY=-1 # 실제 서비스에서는 env 등으로 관리
     driverClassName: org.h2.Driver

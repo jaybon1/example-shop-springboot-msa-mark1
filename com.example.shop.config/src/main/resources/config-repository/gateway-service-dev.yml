@@ -3,6 +3,9 @@ server:
 
 spring:
   cloud:
+    loadbalancer:
+      cache:
+        enabled: true
     gateway:
       #      discovery:
       #        locator:
