@@ -40,6 +40,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -58,6 +59,8 @@ import org.springframework.test.context.DynamicPropertySource;
 @AutoConfigureMockMvc(addFilters = false)
 @Import({JwtProperties.class, AuthControllerV1Test.MockConfig.class})
 class AuthControllerV1Test {
+
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
 
     @Autowired
     private MockMvc mockMvc;
@@ -273,6 +276,7 @@ class AuthControllerV1Test {
                 .invalidateBeforeToken(any(UUID.class), anyList(), any(ReqPostAuthInvalidateBeforeTokenDtoV1.class));
 
         mockMvc.perform(post("/v1/auth/invalidate-before-token")
+                        .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
