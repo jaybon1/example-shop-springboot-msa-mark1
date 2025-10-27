@@ -1,6 +1,6 @@
 # 서비스 인터페이스 및 상호 연동 정리
 
-본 문서는 `example-shop-springboot-msa-mark1` 전환 작업을 위한 Product, Order 서비스의 REST 계약과 내부 연동 규칙을 정의한다. 모든 응답은 공통 모듈의 `ApiDto<T>` 포맷을 따른다.
+본 문서는 `example-shop-springboot-msa-mark1` 전환 작업을 위한 Product · Order · User · Gateway 서비스의 REST 계약과 내부 연동 규칙을 정의한다. 모든 응답은 공통 모듈의 `ApiDto<T>` 포맷을 따른다.
 
 ## Product 서비스 (`com.example.shop.product`)
 
@@ -100,18 +100,42 @@
 - Order 서비스 자체 오류는 기존 `OrderError` 코드를 유지(HTTP 400/403/404).
 - 보상 호출이 실패할 경우를 대비해 Retry/CircuitBreaker 전략을 Resilience4j 로 명시한다. 보상 실패가 반복될 경우 DB 트랜잭션에 보상 상태를 기록하고 운영 경고를 발생시키는 절차가 필요하다.
 
-## Gateway 인증/캐시 전략
-- Gateway 는 모든 요청을 수신하면 `Authorization` 헤더의 액세스 토큰 문자열을 `SHA-256(token + salt)` 로 해시하여 카페인 캐시 키로 사용한다. 원문 토큰은 캐시에 저장하지 않는다.
-- 캐시 value 는 화이트리스트 `0`, 블랙리스트 `1` 의 정수 값만 사용한다. 추가 정보(사용자 ID 등)는 캐시에 보관하지 않는다.
-- 캐시 미스 발생 시 user(auth) 서비스의 `POST /v1/auth/access-token-check` 엔드포인트로 검증을 위임한다.  
-  - 요청 바디: `{"accessJwt": "<jwt 문자열>"}`  
-  - 응답: `ApiDto`(`code = AUTH_TOKEN_VALID` 등) 로 서명 검증 결과, 남은 TTL(초), JWT `exp`, `jwtValidator` 타임스탬프 등을 반환한다.
-- 검증 성공 시 Gateway 는 `(exp - now - 5초)` 를 계산하여 화이트리스트 캐시 TTL 로 설정한다. 남은 유효 시간이 5초 이하일 경우 캐시에 저장하지 않고 한 번만 통과시킨다.
-- user 서비스는 모놀리식과 동일하게 사용자 레코드에 `jwtValidator` 타임스탬프를 유지하며, 검증 응답 시 `jwtValidator + accessTokenValiditySeconds` 를 함께 전달한다. Gateway 는 블랙리스트 캐시 TTL 을 이 값으로 설정해 만료 전까지 요청을 차단한다.
-- 블랙리스트 등록은 user 서비스에서 토큰 무효화 시 Gateway 로 이벤트/요청을 보내 캐시에 `value = 1` 로 저장하도록 구현한다. 해당 TTL 이 경과하면 자동으로 삭제된다.
-- 캐시 히트 시에는 user 서비스 호출 없이 곧바로 다음 서비스로 요청을 전달하며, 이후 각 서비스는 전달된 토큰의 페이로드(클레임)만 읽어 인증/인가를 수행한다.
+## Gateway 서비스 (`com.example.shop.gateway`)
 
-> user 서비스 검증 API 가 실패하거나 타임아웃 될 경우 대비해 Gateway 에서는 Resilience4j CircuitBreaker + Retry, 타임아웃 정책을 설정한다. 실패 시 기본 응답 코드는 503 또는 401 로 통일한다.
+### 현재 구성
+- Config Server 의 `gateway-service-dev.yml` 기준 포트는 `19200` 이며, Spring Cloud Gateway(WebFlux) + Eureka + Config 조합으로 기동한다.
+- `spring.cloud.gateway.server.webflux.discovery.locator.enabled=true` 로 서비스 디스커버리를 켜 두었지만, 동시에 `server.webflux.routes` 에 user/product/order/payment 수동 라우팅을 선언해 경로/문서 파일을 명시적으로 관리한다.
+- 각 라우팅은 `lb://{service-name}` 으로 전달되며 `spring-cloud-starter-loadbalancer` 만 사용한다(별도 Netty 필터 없음).
+- `AccessTokenValidationFilter` 가 전역 필터로 동작하면서 Config Server 로부터 전달받은 `shop.security.jwt.*` 값을 사용해 JWT 서명을 검증하고, 토큰의 `id` 클레임과 Redis 에 저장된 `auth:deny:{userId}` 값을 비교해 만료/무효 여부를 판단한다. 필터를 통과한 요청은 추가 가공 없이 원본 헤더를 유지한 채 백엔드 서비스로 전달된다.
+
+### 인증/인가 흐름
+1. user 서비스에서 `accessJwt`/`refreshJwt` 를 발급하면 JWT 서명(secret, subject 등) 과 토큰 만료 시간 설정 값은 Config Server 를 통해 user·gateway 양쪽 모두에 공유된다.
+2. Gateway 로 유입된 모든 외부 요청은 `AccessTokenValidationFilter` 를 거치며, `Authorization: Bearer <token>` 헤더가 없는 경우(공개 API)만 통과한다.
+3. 필터는 HMAC512 서명을 검증한 뒤, 토큰에서 추출한 사용자 ID 로 Redis(`auth:deny:{userId}`) 의 deny 타임스탬프를 조회한다.  
+   - deny 값이 존재하고 토큰 `iat`(또는 `jwtValidator`) 보다 크거나 같으면 401 로 차단.  
+   - deny 값이 없거나 과거 값이면 인증 통과.
+4. 차단되지 않은 요청은 토큰을 재발급하거나 재검증하지 않고 그대로 다운스트림 서비스에 전달한다. 이후 개별 서비스는 JWT 클레임(역할, 사용자 ID 등)을 사용해 인가 판단을 수행한다.
+5. 모든 외부 진입점이 Gateway 이므로 user 서비스 데이터베이스 조회 없이 Redis 만을 사용하는 경량 인증 경로를 확보한다.
+
+### 라우팅 테이블 (dev)
+
+| Route ID | Path 패턴 | 대상 URI | 비고 |
+| --- | --- | --- | --- |
+| `user-service` | `/v*/users/**`, `/v*/auth/**`, `/springdoc/openapi3-user-service.json` | `lb://user-service` | 사용자 API + user 서비스가 노출하는 OpenAPI 정적 파일 |
+| `product-service` | `/v*/products/**`, `/springdoc/openapi3-product-service.json` | `lb://product-service` | 상품 REST + 문서 |
+| `order-service` | `/v*/orders/**`, `/springdoc/openapi3-order-service.json` | `lb://order-service` | 주문 REST + 문서 |
+| `payment-service` | `/v*/payments/**`, `/springdoc/openapi3-payment-service.json` | `lb://payment-service` | 결제 REST + 문서 |
+
+`Path=/v*/...` 패턴을 사용하므로 `v1`, `v2` 등 향후 버전 경로도 동일한 라우팅 규칙에 포함된다.
+
+### Swagger/OpenAPI 노출
+- 각 서비스 Gradle 스크립트의 `setDocs` 작업이 빌드 시 `build/api-spec/*.json(yaml)` 을 `static/springdoc/openapi3-<service>.{json|yaml}` 로 복사한다.
+- Gateway 는 `springdoc.swagger-ui.urls` 로 네 서비스를 등록하고 `/docs` 경로에서 UI 를 제공한다. 정적 스펙 파일은 Gateway 로 유입되지만 실제 JSON 은 각 서비스 정적 리소스를 proxy 하는 구조다.
+
+### 관측된 공백/추가 TODO
+- Resilience4j 의존성만 등록되어 있고 Gateway 레벨 CircuitBreaker/RateLimit/Retry 설정이 비어 있다. Config Server 상의 `resilience4j` 기본 구성은 선언되어 있으나 실제 라우트에 바인딩되어 있지 않다.
+- 감사 로깅, Zipkin trace logging, Rate Limiter, CORS 정책 등 Gateway 차원의 공통 기능이 미정이라 향후 결정이 필요하다.
+- deny 키 TTL(현재 30분) 및 Redis 장애 대비 정책을 운영 관점에서 확정해야 한다.
 
 ## 공통 정책 요약
 - 모든 서비스는 `/v1` 로 시작하는 버전명을 사용한다. 내부 전용 엔드포인트는 `/internal/v1` 네임스페이스를 사용해 Gateway 외부 노출을 차단한다.
@@ -122,21 +146,51 @@
 ## 향후 확인 필요 사항
 1. Product Ledger/Reservation 설계 확정: 엔티티 스키마, 인덱스, 상태 머신 정의.
 2. 재고 차감/복원 시나리오 테스트: WireMock/Testcontainers 등으로 멀티 서비스 통합 테스트 전략을 수립(후속 작업).
+3. Gateway 레벨 CircuitBreaker/Rate Limiter/모니터링 정책 확정: JWT 검증 필터는 구축되어 있으나 탄력성·관찰성 구성이 필요하다.
+4. User 서비스 DB 마이그레이션 및 Redis 장애 대비 전략 정립: dev 환경은 H2/인메모리 Redis 가정이므로 실제 운영 DB/Failover 전략이 필요하다.
 
 ## User 서비스 (`com.example.shop.user`)
 
+### 현재 구성
+- Config Server 의 `user-service-dev.yml` 에 따라 dev 포트는 `19300` 이며 H2(in-memory) + JPA + QueryDSL 을 사용한다. `ddl-auto=update` 로 테이블을 생성하고, JPA Auditing 이 켜져 있다.
+- `AuthServiceV1` 과 `UserServiceV1` 로 인증/회원 도메인을 분리했고, `UserRepositoryImpl` 이 QueryDSL 기반 검색/페이지네이션을 담당한다.
+- Redis(StringRedisTemplate) 는 `auth:deny:{userId}` 키로 토큰 무효화 시점을 저장한다. JWT 치환 로직은 `JwtTokenGenerator` + `JwtAuthorizationFilter` 로 구성된다.
+- `RestTemplateConfig` 가 `@LoadBalanced` `RestTemplate` 를 노출하므로 추후 다른 MSA 호출 시 공통 구성을 재활용할 수 있다.
+
 ### 인증 API (`/v1/auth`)
 
-| 메서드 | 엔드포인트 | 설명 | 요청 바디 | 정상 응답 |
+| 메서드 | 엔드포인트 | 설명 | 요청/파라미터 | 응답/비고 |
 | --- | --- | --- | --- | --- |
-| POST | `/v1/auth/register` | 신규 사용자 등록 | `{"user": {"username","password","nickname","email"}}` | 200 + `ApiDto` 메시지 | 
-| POST | `/v1/auth/login` | 로그인 및 토큰 발급 | `{"user": {"username","password"}}` | 200 + `accessJwt`, `refreshJwt` |
-| POST | `/v1/auth/refresh` | 토큰 갱신 | `{"refreshJwt": "..."}` | 200 + 새 `accessJwt`, `refreshJwt` |
-| POST | `/v1/auth/access-token-check` | 액세스 토큰 검증 | `{"accessJwt": "..."}` | 200 + `valid`, `remainingSeconds` |
+| POST | `/v1/auth/register` | 신규 사용자 등록 | `{"user":{"username","password","nickname","email"}}` | `ApiDto` 메시지, 기본 ROLE.USER 부여 및 비밀번호 BCrypt 저장 |
+| POST | `/v1/auth/login` | 로그인 및 토큰 발급 | `{"user":{"username","password"}}` | `ApiDto.data` 에 `accessJwt`, `refreshJwt` |
+| POST | `/v1/auth/refresh` | 리프레시 토큰 검증/재발급 | `{"refreshJwt":"..."}` | 새 access/refresh JWT. 사용자 `jwtValidator` 값이 최신 토큰보다 크면 400 |
+| POST | `/v1/auth/check-access-token` | 액세스 토큰 검증 | `{"accessJwt":"..."}` | `ApiDto.data = {userId, valid, remainingSeconds}`. Redis `auth:deny:*` 와 DB 의 `jwtValidator` 값을 모두 확인 |
+| POST | `/v1/auth/invalidate-before-token` | 기 발급 토큰 무효화(모든 기기 로그아웃) | 인증 필요. Body `{"user":{"id":"<uuid>"}}` | 대상 사용자의 `jwtValidator` 를 현재 epoch-second 로 갱신하고 Redis 블랙리스트에 기록 |
 
-> 현재 구현은 더미 토큰을 반환하며, 추후 실제 사용자/토큰 저장소와 연동해야 한다.
+> `/v1/auth/invalidate-before-token` 은 본인/ADMIN/MANAGER 만 호출 가능하며, ADMIN 계정에 대해서는 ADMIN 만 갱신할 수 있다.
+
+### 사용자 관리 API (`/v1/users`)
+
+| 메서드 | 엔드포인트 | 설명 | 인증/권한 | 요청 | 응답/주요 에러 |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/v1/users` | 사용자 목록 조회 (검색/페이지) | ADMIN, MANAGER | `page`,`size`,`sort`,`username`,`nickname`,`email` (선택) | `ApiDto.data.userPage` (`PagedModel`). 미인가 시 `USER_FORBIDDEN` |
+| GET | `/v1/users/{id}` | 단일 사용자 조회 | 본인 또는 ADMIN/MANAGER | Path `id` (UUID) | `ApiDto.data.user`. 타 사용자를 조회할 권한 없을 경우 `USER_BAD_REQUEST`, 존재하지 않으면 `USER_CAN_NOT_FOUND` |
+| DELETE | `/v1/users/{id}` | 사용자 삭제(soft delete) | 본인 또는 ADMIN/MANAGER (단, ADMIN 대상 삭제 금지) | Path `id` (UUID) | `ApiDto` 메시지. 삭제 시 Redis 블랙리스트 등록. 권한 위반/대상 ADMIN 삭제 시 `USER_BAD_REQUEST` |
+
+### 인증/토큰 관리 메모
+- JWT 설정(`shop.security.jwt.*`) 은 Config Server 로부터 주입되며 access 30분, refresh 180일이 기본값이다. user 서비스의 `JwtAuthorizationFilter` 와 gateway 의 `AccessTokenValidationFilter` 가 동일한 시크릿과 만료 정책을 사용한다.
+- `JwtAuthorizationFilter` 는 Gateway 를 통과해 들어온 요청에 대해서도 다시 한 번 서명을 검증하고, 토큰의 `id` 클레임과 JPA 로 관리되는 `jwtValidator` 값을 비교해 무효화 여부를 판단한다. Gateway 를 우회한 내부 호출에 대해서도 동일한 보안 수단을 제공한다.
+- `AuthRedisClient` 는 `denyBy(userId, jwtValidator)` 로 Redis 키를 저장하며 TTL 은 30분(Access Token 기본 만료 시간)으로 고정한다. Redis 에 deny 값이 존재하면 Gateway 및 user 서비스 모두에서 즉시 차단된다.
+- `invalidateBeforeToken`, 사용자 정보 변경, 삭제 등의 이벤트가 발생하면 도메인 계층에서 `jwtValidator` 를 현재 epoch-second 로 갱신하고 Redis 에도 새 값을 기록해 모든 기존 토큰을 즉시 무효화한다.
+- `SecurityConfig` 는 `/v1/auth/**`, `/docs/**`, `/springdoc/**`, `/actuator/health|info` 만 익명 허용하며 나머지는 JWT 인증 필터를 거친다. dev 프로필일 때만 `/h2/**` 를 오픈한다.
+
+### 서비스 연동 포인트
+- Order 등 후속 서비스는 Gateway 를 통해 들어온 요청의 JWT 클레임(사용자 ID, 역할)을 신뢰하고, 자체 인가 정책만 수행한다. 토큰 재검증은 Gateway 와 user 서비스에서 이미 처리되므로 중복 호출이 필요 없다.
+- `/v1/auth/check-access-token` 엔드포인트는 외부 시스템(예: 백오피스) 또는 테스트 시나리오에서 토큰 상태를 확인하기 위한 용도로 유지된다. 서비스 간 통합 흐름에서는 Redis 조회 기반 필터가 기본 경로다.
+- `AuthServiceV1` 이 JWT 발급/무효화의 단일 진입점이므로 다른 서비스에서 직접 JWT 를 만들지 않는다.
 
 ## 진행 메모 (미완료/추가 확인)
-- user 인증 API `/v1/auth/access-token-check` 응답 필드에서 `jwtValidatorTimestamp` 를 제거했음. 실제 구현 시 캐시 TTL 산출 로직과 문서 동기화 필요.
+- user 인증 API `/v1/auth/check-access-token` 은 `userId`, `valid`, `remainingSeconds` 만 반환하며 보조 검증용으로 유지 중이다. 추가 메타 정보(역할 등)가 필요하면 DTO 확장 여부를 먼저 결정할 것.
 - Product 내부 API(`stock-release`, `stock-return`) 는 현재 더미 응답이며 멱등성 검증/재고 처리 로직 확정이 필요하다.
+- Gateway 에는 공통 로깅, 모니터링, 서킷 브레이커, Rate Limiter 등 보강 과제가 남아 있다.
 - RestDocs → OpenAPI 산출물 경로: 각 서비스 `build/api-spec/` 확인. 중앙 문서화/배포 정책은 추후 결정.

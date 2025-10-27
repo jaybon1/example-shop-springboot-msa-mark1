@@ -33,9 +33,6 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        if (isAuthOrUserPath(exchange.getRequest().getURI().getPath())) {
-            return chain.filter(exchange);
-        }
 
         String authorizationHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         String accessJwt = resolveAccessToken(authorizationHeader);
@@ -88,12 +85,12 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
 //                });
     }
 
-    private boolean isAuthOrUserPath(String path) {
-        if (!StringUtils.hasText(path)) {
-            return false;
-        }
-        return path.matches("^/v\\d+/(auth|users)(/.*)?$");
-    }
+//    private boolean isAuthOrUserPath(String path) {
+//        if (!StringUtils.hasText(path)) {
+//            return false;
+//        }
+//        return path.matches("^/v\\d+/(auth|users)(/.*)?$");
+//    }
 
     private String resolveAccessToken(String authorizationHeader) {
         if (!StringUtils.hasText(authorizationHeader)) {
