@@ -45,7 +45,7 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation "org.springframework.cloud:spring-cloud-starter-loadbalancer"
-    implementation 'com.github.ben-manes.caffeine:caffeine'
+//    implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
     implementation 'com.auth0:java-jwt:4.4.0'
 

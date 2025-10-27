@@ -65,7 +65,7 @@ dependencies {
 
     // load balancer
     implementation "org.springframework.cloud:spring-cloud-starter-loadbalancer"
-    implementation 'com.github.ben-manes.caffeine:caffeine'
+//    implementation 'com.github.ben-manes.caffeine:caffeine'
 
     // circuit breaker
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
