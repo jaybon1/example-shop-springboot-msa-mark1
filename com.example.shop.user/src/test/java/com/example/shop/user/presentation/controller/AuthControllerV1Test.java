@@ -37,17 +37,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(value = AuthControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -57,7 +56,7 @@ import org.springframework.test.context.DynamicPropertySource;
 })
 @AutoConfigureRestDocs
 @AutoConfigureMockMvc(addFilters = false)
-@Import({JwtProperties.class, AuthControllerV1Test.MockConfig.class})
+@Import(JwtProperties.class)
 class AuthControllerV1Test {
 
     private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
@@ -68,8 +67,11 @@ class AuthControllerV1Test {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
+    @MockitoBean
     private AuthServiceV1 authServiceV1;
+
+    @MockitoBean
+    private AuthRedisClient authRedisClient;
 
     @AfterEach
     void clearSecurityContext() {
@@ -85,19 +87,6 @@ class AuthControllerV1Test {
         registry.add("shop.security.jwt.header-prefix", () -> "Bearer ");
         registry.add("shop.security.jwt.access-subject", () -> "accessJwt");
         registry.add("shop.security.jwt.refresh-subject", () -> "refreshJwt");
-    }
-
-    @TestConfiguration
-    static class MockConfig {
-        @Bean
-        AuthServiceV1 authServiceV1() {
-            return Mockito.mock(AuthServiceV1.class);
-        }
-
-        @Bean
-        AuthRedisClient authRedisClient() {
-            return Mockito.mock(AuthRedisClient.class);
-        }
     }
 
     @Test

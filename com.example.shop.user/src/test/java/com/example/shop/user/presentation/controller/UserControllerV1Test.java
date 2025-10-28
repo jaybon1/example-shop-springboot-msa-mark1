@@ -9,15 +9,13 @@ import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
 import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.user.presentation.dto.response.ResGetUserDtoV1;
 import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -25,9 +23,8 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -45,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureRestDocs
 @AutoConfigureMockMvc(addFilters = false)
-@Import({JwtProperties.class, UserControllerV1Test.MockConfig.class})
+@Import(JwtProperties.class)
 class UserControllerV1Test {
 
     private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
@@ -53,8 +50,11 @@ class UserControllerV1Test {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
+    @MockitoBean
     private UserServiceV1 userServiceV1;
+
+    @MockitoBean
+    private AuthRedisClient authRedisClient;
 
     @DynamicPropertySource
     static void jwtProperties(DynamicPropertyRegistry registry) {
@@ -65,19 +65,6 @@ class UserControllerV1Test {
         registry.add("shop.security.jwt.header-prefix", () -> "Bearer ");
         registry.add("shop.security.jwt.access-subject", () -> "accessJwt");
         registry.add("shop.security.jwt.refresh-subject", () -> "refreshJwt");
-    }
-
-    @TestConfiguration
-    static class MockConfig {
-        @Bean
-        UserServiceV1 userServiceV1() {
-            return Mockito.mock(UserServiceV1.class);
-        }
-
-        @Bean
-        AuthRedisClient authRedisClient() {
-            return Mockito.mock(AuthRedisClient.class);
-        }
     }
 
     @Test
