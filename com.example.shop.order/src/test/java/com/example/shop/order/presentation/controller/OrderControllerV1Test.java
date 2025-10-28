@@ -107,7 +107,7 @@ class OrderControllerV1Test {
                 .order(
                         ReqPostOrdersDtoV1.OrderDto.builder()
                                 .orderItemList(List.of(
-                                        ReqPostOrdersDtoV1.OrderItemDto.builder()
+                                        ReqPostOrdersDtoV1.OrderDto.OrderItemDto.builder()
                                                 .productId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
                                                 .quantity(1L)
                                                 .build()
