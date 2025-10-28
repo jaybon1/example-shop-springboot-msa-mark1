@@ -1,4 +1,4 @@
-package com.example.shop.user.infrastructure.jpa.config;
+package com.example.shop.order.infrastructure.jpa.config.audit;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

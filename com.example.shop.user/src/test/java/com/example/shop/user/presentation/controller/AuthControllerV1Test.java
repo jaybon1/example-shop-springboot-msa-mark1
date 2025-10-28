@@ -256,7 +256,6 @@ class AuthControllerV1Test {
         CustomUserDetails principal = CustomUserDetails.builder()
                 .id(authUserId)
                 .username("dummy_user")
-                .password("encoded-password")
                 .email("dummy@example.com")
                 .roleList(roleList)
                 .build();

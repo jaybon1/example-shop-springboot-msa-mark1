@@ -1,4 +1,4 @@
-package com.example.shop.user.infrastructure.jpa.config;
+package com.example.shop.user.infrastructure.jpa.config.querydsl;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
