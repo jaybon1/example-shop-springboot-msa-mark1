@@ -70,6 +70,7 @@ public class SecurityConfig {
                     "/actuator/info"
             ).permitAll();
             authorize.requestMatchers(HttpMethod.GET,"/v1/products/**").permitAll();
+            authorize.requestMatchers("/v1/products/**").hasAnyRole("ADMIN", "MANAGER");
             authorize.requestMatchers("/actuator/**").hasRole("ADMIN");
             authorize.anyRequest().authenticated();
         });

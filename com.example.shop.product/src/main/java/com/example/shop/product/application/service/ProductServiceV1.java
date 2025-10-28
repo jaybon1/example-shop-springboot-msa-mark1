@@ -1,7 +1,10 @@
 package com.example.shop.product.application.service;
 
 import com.example.shop.product.domain.model.Product;
+import com.example.shop.product.domain.model.ProductStock;
+import com.example.shop.product.domain.model.ProductStock.ProductStockType;
 import com.example.shop.product.domain.repository.ProductRepository;
+import com.example.shop.product.domain.repository.ProductStockRepository;
 import com.example.shop.product.presentation.advice.ProductError;
 import com.example.shop.product.presentation.advice.ProductException;
 import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReleaseStockDtoV1;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductServiceV1 {
 
     private final ProductRepository productRepository;
+    private final ProductStockRepository productStockRepository;
 
     public ResGetProductsDtoV1 getProducts(Pageable pageable, String name) {
         String normalizedName = normalize(name);
@@ -66,6 +70,11 @@ public class ProductServiceV1 {
             UUID productId,
             ReqPostInternalProductReleaseStockDtoV1 reqDto
     ) {
+        ProductStockType stockType = ProductStockType.RELEASE;
+        if (productStockRepository.existsByProductIdAndOrderIdAndType(productId, reqDto.getOrderId(), stockType)) {
+            throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
+        }
+
         Product product = findProductById(productId);
         long releaseQuantity = requirePositiveQuantity(reqDto.getQuantity());
 
@@ -75,6 +84,15 @@ public class ProductServiceV1 {
 
         Product updatedProduct = product.update(null, null, product.getStock() - releaseQuantity);
         Product savedProduct = productRepository.save(updatedProduct);
+
+        productStockRepository.save(
+                ProductStock.builder()
+                        .productId(savedProduct.getId())
+                        .orderId(reqDto.getOrderId())
+                        .quantity(releaseQuantity)
+                        .type(stockType)
+                        .build()
+        );
 
         return ResPostInternalProductReleaseStockDtoV1.builder()
                 .productId(savedProduct.getId().toString())
@@ -89,11 +107,25 @@ public class ProductServiceV1 {
             UUID productId,
             ReqPostInternalProductReturnStockDtoV1 reqDto
     ) {
+        ProductStockType stockType = ProductStockType.RETURN;
+        if (productStockRepository.existsByProductIdAndOrderIdAndType(productId, reqDto.getOrderId(), stockType)) {
+            throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
+        }
+
         Product product = findProductById(productId);
         long returnQuantity = requirePositiveQuantity(reqDto.getQuantity());
 
         Product updatedProduct = product.update(null, null, product.getStock() + returnQuantity);
         Product savedProduct = productRepository.save(updatedProduct);
+
+        productStockRepository.save(
+                ProductStock.builder()
+                        .productId(savedProduct.getId())
+                        .orderId(reqDto.getOrderId())
+                        .quantity(returnQuantity)
+                        .type(stockType)
+                        .build()
+        );
 
         return ResPostInternalProductReturnStockDtoV1.builder()
                 .productId(savedProduct.getId().toString())
