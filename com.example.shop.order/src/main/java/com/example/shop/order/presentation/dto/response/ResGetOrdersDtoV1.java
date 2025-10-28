@@ -37,6 +37,10 @@ public class ResGetOrdersDtoV1 {
             );
         }
 
+        public OrderPageDto(OrderDto... orderDtoArray) {
+            super(new PageImpl<>(List.of(orderDtoArray)));
+        }
+
         @Getter
         @Builder
         public static class OrderDto {

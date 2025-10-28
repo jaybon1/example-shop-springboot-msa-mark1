@@ -2,6 +2,11 @@ package com.example.shop.order.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -9,20 +14,32 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
+import com.example.shop.order.application.service.OrderServiceV1;
+import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.presentation.dto.request.ReqPostOrdersDtoV1;
+import com.example.shop.order.presentation.dto.response.ResGetOrderDtoV1;
+import com.example.shop.order.presentation.dto.response.ResGetOrdersDtoV1;
+import com.example.shop.order.presentation.dto.response.ResPostOrdersDtoV1;
+import com.example.shop.order.infrastructure.security.jwt.JwtProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 
 @WebMvcTest(value = OrderControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -31,6 +48,8 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.config.import=optional:classpath:/"
 })
 @AutoConfigureRestDocs
+@AutoConfigureMockMvc(addFilters = false)
+@Import(OrderControllerV1Test.JwtTestConfig.class)
 class OrderControllerV1Test {
 
     private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
@@ -41,16 +60,45 @@ class OrderControllerV1Test {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockitoBean
+    private OrderServiceV1 orderServiceV1;
+
+    @TestConfiguration
+    static class JwtTestConfig {
+        @Bean
+        JwtProperties jwtProperties() {
+            return new JwtProperties("Authorization", "Bearer ", "access-token");
+        }
+    }
+
     @Test
     @DisplayName("주문 목록 조회 시 두 건의 더미 주문을 반환한다")
     void getOrders_returnsDummyOrders() throws Exception {
+        ResGetOrdersDtoV1 response = ResGetOrdersDtoV1.builder()
+                .orderPage(new ResGetOrdersDtoV1.OrderPageDto(
+                        ResGetOrdersDtoV1.OrderPageDto.OrderDto.builder()
+                                .id(UUID.randomUUID().toString())
+                                .status(Order.Status.CREATED)
+                                .totalAmount(10_000L)
+                                .createdAt(Instant.now())
+                                .build(),
+                        ResGetOrdersDtoV1.OrderPageDto.OrderDto.builder()
+                                .id(UUID.randomUUID().toString())
+                                .status(Order.Status.PAID)
+                                .totalAmount(20_000L)
+                                .createdAt(Instant.now())
+                                .build()
+                ))
+                .build();
+        given(orderServiceV1.getOrders(any(), anyList(), any())).willReturn(response);
+
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/orders")
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.orders", hasSize(2)))
-                .andExpect(jsonPath("$.data.orders[0].status", equalTo("CREATED")))
+                .andExpect(jsonPath("$.data.orderPage.content", hasSize(2)))
+                .andExpect(jsonPath("$.data.orderPage.content[0].status", equalTo("CREATED")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "order-get-orders",
@@ -71,6 +119,33 @@ class OrderControllerV1Test {
     @DisplayName("주문 단건 조회 시 주문 ID 가 응답에 포함된다")
     void getOrder_returnsRequestedId() throws Exception {
         UUID orderId = UUID.fromString("aaaaaaaa-0000-0000-0000-aaaaaaaa0000");
+
+        ResGetOrderDtoV1 response = ResGetOrderDtoV1.builder()
+                .order(
+                        ResGetOrderDtoV1.OrderDto.builder()
+                                .id(orderId.toString())
+                                .orderItemList(List.of(
+                                        ResGetOrderDtoV1.OrderItemDto.builder()
+                                                .id(UUID.randomUUID().toString())
+                                                .productId(UUID.randomUUID().toString())
+                                                .productName("샘플 상품 A")
+                                                .unitPrice(10_000L)
+                                                .quantity(1L)
+                                                .lineTotal(10_000L)
+                                                .build(),
+                                        ResGetOrderDtoV1.OrderItemDto.builder()
+                                                .id(UUID.randomUUID().toString())
+                                                .productId(UUID.randomUUID().toString())
+                                                .productName("샘플 상품 B")
+                                                .unitPrice(20_000L)
+                                                .quantity(1L)
+                                                .lineTotal(20_000L)
+                                                .build()
+                                ))
+                                .build()
+                )
+                .build();
+        given(orderServiceV1.getOrder(any(), anyList(), eq(orderId))).willReturn(response);
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/orders/{id}", orderId)
@@ -116,6 +191,16 @@ class OrderControllerV1Test {
                 )
                 .build();
 
+        ResPostOrdersDtoV1 response = ResPostOrdersDtoV1.builder()
+                .order(
+                        ResPostOrdersDtoV1.OrderDto.builder()
+                                .status(Order.Status.CREATED)
+                                .orderItemList(List.of())
+                                .build()
+                )
+                .build();
+        given(orderServiceV1.postOrders(any(), anyList(), any(ReqPostOrdersDtoV1.class))).willReturn(response);
+
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders")
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
@@ -145,6 +230,8 @@ class OrderControllerV1Test {
     @DisplayName("주문 취소 요청 시 성공 메시지를 반환한다")
     void cancelOrder_returnsSuccessMessage() throws Exception {
         UUID orderId = UUID.fromString("bbbbbbbb-0000-0000-0000-bbbbbbbb0000");
+
+        willDoNothing().given(orderServiceV1).cancelOrder(any(), anyList(), eq(orderId));
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders/{id}/cancel", orderId)
