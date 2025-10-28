@@ -4,6 +4,8 @@ import com.example.shop.global.presentation.dto.ApiDto;
 import com.example.shop.product.application.service.ProductServiceV1;
 import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReleaseStockDtoV1;
 import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReturnStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductsReturnStockDtoV1;
 import com.example.shop.product.presentation.dto.response.ResPostInternalProductReleaseStockDtoV1;
 import com.example.shop.product.presentation.dto.response.ResPostInternalProductReturnStockDtoV1;
 import jakarta.validation.Valid;
@@ -23,41 +25,26 @@ public class InternalProductControllerV1 {
 
     private final ProductServiceV1 productServiceV1;
 
-    @PostMapping("/{productId}/release-stock")
-    public ResponseEntity<ApiDto<ResPostInternalProductReleaseStockDtoV1>> postInternalProductReleaseStock(
-            @PathVariable("productId") UUID productId,
-            @RequestBody @Valid ReqPostInternalProductReleaseStockDtoV1 reqDto
+    @PostMapping("/release-stock")
+    public ResponseEntity<ApiDto<Object>> postInternalProductsReleaseStock(
+            @RequestBody @Valid ReqPostInternalProductsReleaseStockDtoV1 reqDto
     ) {
-        ResPostInternalProductReleaseStockDtoV1 responseBody = productServiceV1.postInternalProductReleaseStock(
-                productId,
-                reqDto
-        );
-
         return ResponseEntity.ok(
-                ApiDto.<ResPostInternalProductReleaseStockDtoV1>builder()
-                        .code("PRODUCT_STOCK_RELEASED")
+                ApiDto.builder()
                         .message("상품 재고 차감이 완료되었습니다.")
-                        .data(responseBody)
                         .build()
         );
     }
 
-    @PostMapping("/{productId}/return-stock")
-    public ResponseEntity<ApiDto<ResPostInternalProductReturnStockDtoV1>> postInternalProductReturnStock(
-            @PathVariable("productId") UUID productId,
-            @RequestBody @Valid ReqPostInternalProductReturnStockDtoV1 reqDto
+    @PostMapping("/release-stock")
+    public ResponseEntity<ApiDto<Object>> postInternalProductsReturnStock(
+            @RequestBody @Valid ReqPostInternalProductsReturnStockDtoV1 reqDto
     ) {
-        ResPostInternalProductReturnStockDtoV1 responseBody = productServiceV1.postInternalProductReturnStock(
-                productId,
-                reqDto
-        );
-
         return ResponseEntity.ok(
-                ApiDto.<ResPostInternalProductReturnStockDtoV1>builder()
-                        .code("PRODUCT_STOCK_RETURNED")
+                ApiDto.builder()
                         .message("상품 재고 복원이 완료되었습니다.")
-                        .data(responseBody)
                         .build()
         );
     }
+
 }
