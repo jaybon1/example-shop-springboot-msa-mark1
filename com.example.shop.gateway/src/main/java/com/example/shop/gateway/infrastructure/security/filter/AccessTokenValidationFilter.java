@@ -38,14 +38,7 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
         String accessJwt = resolveAccessToken(authorizationHeader);
 
         if (!StringUtils.hasText(accessJwt)) {
-            ServerHttpRequest mutatedRequest = exchange.getRequest()
-                    .mutate()
-                    .headers(headers -> headers.remove(HttpHeaders.AUTHORIZATION))
-                    .build();
-            ServerWebExchange mutatedExchange = exchange.mutate()
-                    .request(mutatedRequest)
-                    .build();
-            return chain.filter(mutatedExchange);
+            return chain.filter(removeAuthorizationHeaderFromExchange(exchange));
         }
 
         DecodedJWT decodedAccessJwt;
@@ -54,12 +47,12 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
                     .build()
                     .verify(accessJwt);
         } catch (JWTVerificationException exception) {
-            return chain.filter(exchange);
+            throw new GatewayException(GatewayError.GATEWAY_TOKEN_INVALID);
         }
 
         String id = decodedAccessJwt.getClaim("id").asString();
         if (!StringUtils.hasText(id)) {
-            throw new GatewayException(GatewayError.GATEWAY_USER_SERVICE_UNAVAILABLE);
+            throw new GatewayException(GatewayError.GATEWAY_TOKEN_INVALID);
         }
 
         Long jwtValidator = authRedisClient.getBy(id);
@@ -69,28 +62,18 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
 
         return chain.filter(exchange);
 
-//        return Mono.fromCallable(() -> authRestTemplateClientV1.checkAccessToken(accessJwt))
-//                .subscribeOn(Schedulers.boundedElastic())
-//                .flatMap(resDto -> {
-//                    if (!resDto.isValid()) {
-//                        return Mono.error(new GatewayException(GatewayError.GATEWAY_TOKEN_INVALID));
-//                    }
-//                    return chain.filter(exchange);
-//                })
-//                .onErrorMap(throwable -> {
-//                    if (throwable instanceof GatewayException) {
-//                        return throwable;
-//                    }
-//                    return new GatewayException(GatewayError.GATEWAY_USER_SERVICE_UNAVAILABLE, throwable);
-//                });
     }
 
-//    private boolean isAuthOrUserPath(String path) {
-//        if (!StringUtils.hasText(path)) {
-//            return false;
-//        }
-//        return path.matches("^/v\\d+/(auth|users)(/.*)?$");
-//    }
+    private static ServerWebExchange removeAuthorizationHeaderFromExchange(ServerWebExchange exchange) {
+        ServerHttpRequest mutatedRequest = exchange.getRequest()
+                .mutate()
+                .headers(headers -> headers.remove(HttpHeaders.AUTHORIZATION))
+                .build();
+        ServerWebExchange mutatedExchange = exchange.mutate()
+                .request(mutatedRequest)
+                .build();
+        return mutatedExchange;
+    }
 
     private String resolveAccessToken(String authorizationHeader) {
         if (!StringUtils.hasText(authorizationHeader)) {
