@@ -1,6 +1,6 @@
 package com.example.shop.product.infrastructure.jpa.config.audit;
 
-import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
+import com.example.shop.product.infrastructure.security.auth.CustomUserDetails;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
