@@ -4,6 +4,9 @@ import com.example.shop.product.domain.model.Product;
 import com.example.shop.product.domain.repository.ProductRepository;
 import com.example.shop.product.presentation.advice.ProductError;
 import com.example.shop.product.presentation.advice.ProductException;
+import com.example.shop.product.presentation.dto.response.ResGetProductDtoV1;
+import com.example.shop.product.presentation.dto.response.ResGetProductsDtoV1;
+import com.example.shop.product.presentation.dto.response.ResPostProductsDtoV1;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -19,21 +22,22 @@ public class ProductServiceV1 {
 
     private final ProductRepository productRepository;
 
-    public Page<Product> getProducts(Pageable pageable, String name) {
+    public ResGetProductsDtoV1 getProducts(Pageable pageable, String name) {
         String normalizedName = normalize(name);
-        if (normalizedName == null) {
-            return productRepository.findAll(pageable);
-        }
-        return productRepository.findByNameContainingIgnoreCase(normalizedName, pageable);
+        Page<Product> productPage = normalizedName == null
+                ? productRepository.findAll(pageable)
+                : productRepository.findByNameContainingIgnoreCase(normalizedName, pageable);
+        return ResGetProductsDtoV1.of(productPage);
     }
 
-    public Product getProduct(UUID productId) {
-        return productRepository.findById(productId)
+    public ResGetProductDtoV1 getProduct(UUID productId) {
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductException(ProductError.PRODUCT_CAN_NOT_FOUND));
+        return ResGetProductDtoV1.of(product);
     }
 
     @Transactional
-    public Product createProduct(String name, Long price, Long stock) {
+    public ResPostProductsDtoV1 postProducts(String name, Long price, Long stock) {
         String normalizedName = normalize(name);
         if (normalizedName == null) {
             throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
@@ -47,7 +51,8 @@ public class ProductServiceV1 {
                 .stock(stock)
                 .build();
 
-        return productRepository.save(newProduct);
+        Product savedProduct = productRepository.save(newProduct);
+        return ResPostProductsDtoV1.of(savedProduct);
     }
 
     private void validateDuplicatedName(String name, Optional<UUID> excludeId) {

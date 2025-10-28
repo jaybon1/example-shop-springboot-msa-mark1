@@ -51,7 +51,7 @@ public class ProductControllerV1 {
     }
 
     @PostMapping
-    public ResponseEntity<ApiDto<ResPostProductsDtoV1>> createProduct(
+    public ResponseEntity<ApiDto<ResPostProductsDtoV1>> postProducts(
             @RequestBody @Valid ReqPostProductsDtoV1 reqDto
     ) {
         ResPostProductsDtoV1 responseBody = ResPostProductsDtoV1.builder()
