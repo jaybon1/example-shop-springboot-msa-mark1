@@ -21,3 +21,10 @@ management:
         include:
           - health
           - info
+
+shop:
+  security:
+    jwt:
+      access-header-name: Authorization
+      header-prefix: "Bearer "
+      access-subject: accessJwt
