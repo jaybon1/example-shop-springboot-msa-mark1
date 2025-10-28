@@ -71,6 +71,9 @@ dependencies {
     // circuit breaker
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
 
+    // jwt
+    implementation 'com.auth0:java-jwt:4.4.0'
+
     // monitoring
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation "io.micrometer:micrometer-tracing-bridge-brave"
