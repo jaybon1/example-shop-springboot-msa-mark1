@@ -21,5 +21,7 @@ public interface ProductRepository {
 
     List<Product> findAllById(Iterable<UUID> productIdList);
 
+    List<Product> findByIdIn(List<UUID> productIdList);
+
     long count();
 }

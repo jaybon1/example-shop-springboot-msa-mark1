@@ -7,21 +7,21 @@ import com.example.shop.product.domain.repository.ProductRepository;
 import com.example.shop.product.domain.repository.ProductStockRepository;
 import com.example.shop.product.presentation.advice.ProductError;
 import com.example.shop.product.presentation.advice.ProductException;
-import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReleaseStockDtoV1;
-import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReturnStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductsReturnStockDtoV1;
 import com.example.shop.product.presentation.dto.request.ReqPostProductsDtoV1;
 import com.example.shop.product.presentation.dto.response.ResGetProductDtoV1;
 import com.example.shop.product.presentation.dto.response.ResGetProductsDtoV1;
-import com.example.shop.product.presentation.dto.response.ResPostInternalProductReleaseStockDtoV1;
-import com.example.shop.product.presentation.dto.response.ResPostInternalProductReturnStockDtoV1;
 import com.example.shop.product.presentation.dto.response.ResPostProductsDtoV1;
-import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,9 +40,7 @@ public class ProductServiceV1 {
     }
 
     public ResGetProductDtoV1 getProduct(UUID productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductException(ProductError.PRODUCT_CAN_NOT_FOUND));
-        return ResGetProductDtoV1.of(product);
+        return ResGetProductDtoV1.of(findProductById(productId));
     }
 
     @Transactional
@@ -52,87 +50,68 @@ public class ProductServiceV1 {
         if (normalizedName == null) {
             throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
         }
-
         validateDuplicatedName(normalizedName, Optional.empty());
-
         Product newProduct = Product.builder()
                 .name(normalizedName)
                 .price(reqProduct.getPrice())
                 .stock(reqProduct.getStock())
                 .build();
-
         Product savedProduct = productRepository.save(newProduct);
         return ResPostProductsDtoV1.of(savedProduct);
     }
 
     @Transactional
-    public ResPostInternalProductReleaseStockDtoV1 postInternalProductReleaseStock(
-            UUID productId,
-            ReqPostInternalProductReleaseStockDtoV1 reqDto
-    ) {
-        ProductStockType stockType = ProductStockType.RELEASE;
-        if (productStockRepository.existsByProductIdAndOrderIdAndType(productId, reqDto.getOrderId(), stockType)) {
+    public void postInternalProductsReleaseStock(ReqPostInternalProductsReleaseStockDtoV1 reqDto) {
+        if (productStockRepository.existsByOrderIdAndType(reqDto.getOrder().getOrderId(), ProductStockType.RELEASE)) {
             throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
         }
-
-        Product product = findProductById(productId);
-        long releaseQuantity = requirePositiveQuantity(reqDto.getQuantity());
-
-        if (product.getStock() < releaseQuantity) {
-            throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
-        }
-
-        Product updatedProduct = product.update(null, null, product.getStock() - releaseQuantity);
-        Product savedProduct = productRepository.save(updatedProduct);
-
-        productStockRepository.save(
-                ProductStock.builder()
-                        .productId(savedProduct.getId())
-                        .orderId(reqDto.getOrderId())
-                        .quantity(releaseQuantity)
-                        .type(stockType)
-                        .build()
+        List<Product> productList = productRepository.findByIdIn(
+                reqDto.getProductStocks().stream()
+                        .map(ReqPostInternalProductsReleaseStockDtoV1.ProductStockDto::getProductId)
+                        .toList()
         );
-
-        return ResPostInternalProductReleaseStockDtoV1.builder()
-                .productId(savedProduct.getId().toString())
-                .orderId(reqDto.getOrderId().toString())
-                .releasedQuantity(releaseQuantity)
-                .currentStock(savedProduct.getStock())
-                .build();
+        reqDto.getProductStocks().forEach(productStockDto -> {
+            productList.stream().filter(product -> product.getId().equals(productStockDto.getProductId())).findFirst()
+                    .ifPresent(product -> {
+                        if (product.getStock() < productStockDto.getQuantity()) {
+                            throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
+                        }
+                        Product updatedProduct = product.update(null, null, product.getStock() - productStockDto.getQuantity());
+                        productRepository.save(updatedProduct);
+                        productStockRepository.save(
+                                ProductStock.builder()
+                                        .productId(productStockDto.getProductId())
+                                        .orderId(reqDto.getOrder().getOrderId())
+                                        .quantity(productStockDto.getQuantity())
+                                        .type(ProductStockType.RELEASE)
+                                        .build()
+                        );
+                    });
+        });
     }
 
     @Transactional
-    public ResPostInternalProductReturnStockDtoV1 postInternalProductReturnStock(
-            UUID productId,
-            ReqPostInternalProductReturnStockDtoV1 reqDto
-    ) {
-        ProductStockType stockType = ProductStockType.RETURN;
-        if (productStockRepository.existsByProductIdAndOrderIdAndType(productId, reqDto.getOrderId(), stockType)) {
+    public void postInternalProductsReturnStock(ReqPostInternalProductsReturnStockDtoV1 reqDto) {
+        if (productStockRepository.existsByOrderIdAndType(reqDto.getOrder().getOrderId(), ProductStockType.RETURN)) {
             throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
         }
-
-        Product product = findProductById(productId);
-        long returnQuantity = requirePositiveQuantity(reqDto.getQuantity());
-
-        Product updatedProduct = product.update(null, null, product.getStock() + returnQuantity);
-        Product savedProduct = productRepository.save(updatedProduct);
-
-        productStockRepository.save(
-                ProductStock.builder()
-                        .productId(savedProduct.getId())
-                        .orderId(reqDto.getOrderId())
-                        .quantity(returnQuantity)
-                        .type(stockType)
-                        .build()
-        );
-
-        return ResPostInternalProductReturnStockDtoV1.builder()
-                .productId(savedProduct.getId().toString())
-                .orderId(reqDto.getOrderId().toString())
-                .returnedQuantity(returnQuantity)
-                .currentStock(savedProduct.getStock())
-                .build();
+        List<ProductStock> productStockList = productStockRepository.findByOrderId(reqDto.getOrder().getOrderId());
+        List<Product> productList = productRepository.findByIdIn(productStockList.stream().map(ProductStock::getProductId).toList());
+        productStockList.forEach(productStock -> {
+            productList.stream().filter(product -> product.getId().equals(productStock.getProductId())).findFirst()
+                    .ifPresent(product -> {
+                        Product updatedProduct = product.update(null, null, product.getStock() + productStock.getQuantity());
+                        productRepository.save(updatedProduct);
+                        productStockRepository.save(
+                                ProductStock.builder()
+                                        .productId(productStock.getProductId())
+                                        .orderId(reqDto.getOrder().getOrderId())
+                                        .quantity(productStock.getQuantity())
+                                        .type(ProductStockType.RETURN)
+                                        .build()
+                        );
+                    });
+        });
     }
 
     private void validateDuplicatedName(String name, Optional<UUID> excludeId) {
@@ -157,10 +136,4 @@ public class ProductServiceV1 {
                 .orElseThrow(() -> new ProductException(ProductError.PRODUCT_CAN_NOT_FOUND));
     }
 
-    private long requirePositiveQuantity(Long quantity) {
-        if (quantity == null || quantity <= 0) {
-            throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
-        }
-        return quantity;
-    }
 }

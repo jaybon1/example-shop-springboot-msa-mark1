@@ -69,6 +69,14 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public List<Product> findByIdIn(List<UUID> productIdList) {
+        return productJpaRepository.findByIdIn(productIdList)
+                .stream()
+                .map(productMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public long count() {
         return productJpaRepository.count();
     }
