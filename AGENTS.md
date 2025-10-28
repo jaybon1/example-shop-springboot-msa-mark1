@@ -53,6 +53,67 @@
 2. 서비스별 `Dockerfile`, `docker-compose`(필요 시) 를 작성하여 로컬 다중 서비스 테스트 자동화를 지원한다.
 3. 최종 점검 시, user → product → order → payment 순으로 Smoke Test 를 실행하고, Resilience4j 상태 모니터링 및 Zipkin 트레이스를 확인한다.
 
+## DTO · Controller · Service 레이어 컨벤션
+
+`example-shop-springboot-monolithic-mark2` 와 현재 MSA(user/product) 코드를 기준으로, 나머지 마이크로서비스도 동일한 규칙을 따른다.
+
+### 공통 전제
+- 패키지 구조: `presentation(컨트롤러·DTO)` → `application(service)` → `domain(model·repository)` → `infrastructure(...)` 를 유지한다.
+- 버저닝: 외부 노출 클래스/DTO는 `V1` 접미사를 반드시 붙인다. 향후 버전 추가 시 동일 네이밍 패턴으로 병존시킨다.
+- Lombok: DTO는 `@Getter`, `@Builder`, 필요 시 `@AllArgsConstructor` 를 사용해 불변 구조를 유지한다. 서비스/컨트롤러는 `@RequiredArgsConstructor` 로 의존성을 주입한다.
+- 응답 래퍼: 컨트롤러 응답은 항상 `ApiDto<T>` 를 사용하며, `ResponseEntity.ok(ApiDto.builder()...)` 형태로 반환한다.
+
+### DTO 레이어
+- 네이밍:
+  - 요청: `Req{HttpMethod}{Resource}{세부기능}DtoV1` (`ReqPostProductsDtoV1`, `ReqPostAuthRegisterDtoV1`).
+  - 응답: `Res{동사/리소스}DtoV1` 또는 페이지 구조일 경우 `Res{동사/리소스}sDtoV1` (복수형은 관례적으로 `ResGetUsersDtoV1`).
+- 구조:
+  - 요청/응답 모두 최상위 DTO 안에 실제 payload를 나타내는 정적 중첩 클래스를 둔다. 예) `ReqPostProductsDtoV1.ProductDto`, `ResGetProductDtoV1.ProductDto`.
+  - 리스트/페이지 응답은 `PagedModel<T>` 를 상속한 중첩 클래스를 사용해 page metadata 를 유지한다. (monolithic `ResGetProductsDtoV1` → `ProductPageDto`, `MSA ResGetUsersDtoV1` 동일 방식).
+  - 변환은 정적 팩토리 메서드를 사용한다: `of(domain)`, `from(domain)` 혹은 `builder()` 체인을 활용한다. 예) `ResPostProductsDtoV1.of(Product)` / `ProductDto.from(Product)`.
+  - 요청 DTO 는 `jakarta.validation` 애노테이션(@NotNull, @Min 등) 으로 유효성 검사를 명시한다.
+  - 식별자는 문자열(UUID)로 직렬화하되, 도메인에선 `UUID` 를 사용한다. 변환 시 `uuid.toString()` 으로 처리한다.
+- 응답 메시지:
+  - 컨트롤러에서 메시지를 별도로 제공할 경우 `ApiDto` 의 `message` 필드를 채운다. DTO 내부에는 메시지 필드를 두지 않는다.
+
+### Controller 레이어
+- 클래스 레벨:
+  - `@RestController`, `@RequestMapping("/v1/{resource}")`, `@RequiredArgsConstructor` 를 기본으로 사용한다.
+  - 공통 보안 설정이 필요한 경우 `@AutoConfigureMockMvc(addFilters = false)` 등 테스트에서만 적용. 실제 컨트롤러는 필터를 그대로 둔다.
+- 메서드 네이밍:
+  - `HTTP Method + 경로` 형식을 따른다. 예) `GET /v1/products` → `getProducts`, `POST /internal/v1/products/{id}/release-stock` → `postInternalProductReleaseStock`.
+  - 내부 전용 엔드포인트는 `/internal` prefix 를 경로에 포함시키고, 메서드명에도 `Internal`을 명시해 외부 API와 구분한다.
+- 시그니처:
+  - 목록 조회: `Pageable` 은 `@PageableDefault` 와 함께 첫 번째 파라미터로 두고, 필터 파라미터는 `@RequestParam(required = false)`로 뒤에 배치한다.
+  - 단건 조회/삭제: `@PathVariable UUID` 파라미터를 사용하고, 인증 정보가 필요하면 `@AuthenticationPrincipal CustomUserDetails` 를 첫 번째 인자로 받는다. `CustomUserDetails` 가 `null` 일 수 있으므로 null-safe 처리 후 Service 로 전달한다.
+  - 생성/수정: `@RequestBody @Valid Req...DtoV1` 를 사용하며, 서비스에는 DTO 전체를 전달한다. (예: `productServiceV1.postProducts(reqDto)`).
+- 응답:
+  - 성공 응답은 `ResponseEntity.ok(ApiDto.<Res...DtoV1>builder().message(...).data(...).build())`.
+  - 데이터가 없는 경우 `ApiDto.builder().message(...).build()` 로 빈 데이터를 반환한다.
+  - 내부 API 는 명시적인 상태 코드(보통 200)로 응답하고 `code`, `message`, `data` 를 채운다.
+- 예외 처리:
+  - 컨트롤러는 예외를 직접 처리하지 않고, `...presentation.advice` 패키지의 `@RestControllerAdvice` 에서 처리하도록 위임한다 (monolithic/msa 동일 패턴).
+
+### Service 레이어
+- 클래스 레벨:
+  - `@Service`, `@RequiredArgsConstructor`, `@Transactional(readOnly = true)` 를 기본으로 적용한다.
+  - 쓰기 작업이 있는 메서드에 `@Transactional` 을 다시 선언해 readOnly 를 해제한다.
+- 메서드 시그니처/역할:
+  - 컨트롤러에서 받은 인증 정보(사용자 ID, 롤 리스트 등)는 별도 DTO 로 래핑하지 않고, 원시 타입(`UUID`, `List<String>`) 으로 그대로 넘긴다. 검증은 서비스 내부에서 수행한다 (`validateAccess`, `isAdmin`, `requirePositiveQuantity` 등).
+  - 정규화/검증/권한 체크는 별도 private 메서드로 분리한다 (`normalize`, `validateDuplicatedName`, `findProductById`, `getUserOrThrow`).
+  - 서비스 리턴 타입은 도메인 모델이 아닌 응답 DTO 를 그대로 반환한다 (`ResGetProductDtoV1.of(product)` 패턴). 이렇게 하면 컨트롤러는 전달만 담당한다.
+  - 중복 호출 방지나 멱등성 보장은 서비스 계층에서 구현한다 (예: `productStockRepository.existsByProductIdAndOrderIdAndType(...)` 체크 후 저장).
+- 예외:
+  - 서비스 계층에서 발생시키는 예외는 `presentation.advice` 패키지의 `*Exception`/`*Error` 를 사용한다. 오류코드는 enum 으로 관리하며, 응답 메시지를 전역 처리기가 반환한다.
+- 기타:
+  - Redis·외부 시스템 연동은 별도 클라이언트를 주입하고, 서비스에서 직접 호출한다. 테스트에서는 `@MockitoBean` 으로 해당 클라이언트를 대체한다.
+  - 문자열 입력은 `normalize` 메서드로 공백을 trim 후 비어 있으면 `null` 로 치환해 검색 조건이나 검증 실패를 명확히 한다.
+
+### 테스트 컨벤션 (참고)
+- `@WebMvcTest` 환경에서는 `@MockitoBean` 으로 서비스/외부 클라이언트를 주입하고, 필수 프로퍼티는 `@DynamicPropertySource` 또는 `@TestConfiguration` 빈으로 제공한다.
+- MockMvc 응답 검증 시 JSON Path 는 `ApiDto` 구조(`$.data.*`, `$.message`) 를 기준으로 작성한다.
+- JWT 설정은 `DynamicPropertyRegistry` 로 주입하거나, 간단한 경우 `properties` 속성에 기본값을 넣는다.
+
 ## 진행 상황 메모
 - RestDocs 기반 컨트롤러 테스트 작성 완료: product / user / order / payment 서비스. product 내부 전용 API(`release-stock`, `return-stock`)까지 문서화 포함.
 - `user` 서비스 액세스 토큰 검증 응답에서 `jwtValidatorTimestamp` 필드를 제거했고 테스트/문서 스니펫 갱신 필요.
