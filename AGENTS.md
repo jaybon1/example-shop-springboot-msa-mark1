@@ -27,7 +27,7 @@
 ### 2. product 서비스 전환 (`com.example.shop.product`)
 1. 모놀리식 `product` 도메인의 엔티티(`ProductEntity`), 도메인 모델(`Product`), 매퍼(`ProductMapper`), 레포지토리 구현(`ProductRepositoryImpl`) 을 마이크로서비스 레이어에 맞춰 재배치하고, 공통 `BaseEntity` 사용 여부를 결정한다.
 2. `ProductServiceV1` 의 재고/가격/상품 CRUD 로직을 분리하면서 user 서비스와의 연관이 필요한지(예: 상품 등록자 검증) 검토하고, 필요 시 user 서비스 호출용 `RestTemplate` 클라이언트와 Resilience4j 서킷 브레이커 구성을 추가한다.
-3. `presentation/controller` 및 DTO 를 참고하여 `/api/v1/products` REST 엔드포인트와 내부 전용 `/internal/v1/products/{productId}/stock-release`, `/internal/v1/products/{productId}/stock-return` API 를 정의하고, Gateway 라우팅 정보와 일치하도록 스키마를 확정한다.
+3. `presentation/controller` 및 DTO 를 참고하여 `/api/v1/products` REST 엔드포인트와 내부 전용 `/internal/v1/products/{productId}/release-stock`, `/internal/v1/products/{productId}/return-stock` API 를 정의하고, Gateway 라우팅 정보와 일치하도록 스키마를 확정한다.
 4. JPA 설정, CommandLineRunner 기반 초기 데이터 로딩(`ProductCommandLineRunner`) 을 profile 기반으로 분리하여 개발과 운영 환경 차이를 최소화한다.
 5. 통합 테스트 시나리오(상품 CRUD + 재고 확인)를 `@SpringBootTest` 또는 `@DataJpaTest` 로 구성하고, Zipkin trace id 가 정상 전파되는지 확인한다.
 
@@ -37,7 +37,7 @@
    - 사용자 유효성 검증: user 서비스 `GET /api/v1/users/{id}`  
    - 상품 재고 차감: product 서비스 `POST /internal/v1/products/{productId}/stock-release`  
    각 호출에 대해 `RestTemplate` + Resilience4j(CircuitBreaker + Retry) 설정을 `application.yml` 에 명시한다.
-3. 여러 상품에 대한 재고 차감 중 하나라도 실패하면 전체 주문을 롤백하고, 이미 차감된 재고는 `POST /internal/v1/products/{productId}/stock-return` 보상 호출로 복원하도록 트랜잭션/보상 로직을 설계한다. CircuitBreaker open 상태에서 임시 주문 생성 차단 정책도 포함한다.
+3. 여러 상품에 대한 재고 차감 중 하나라도 실패하면 전체 주문을 롤백하고, 이미 차감된 재고는 `POST /internal/v1/products/{productId}/return-stock` 보상 호출로 복원하도록 트랜잭션/보상 로직을 설계한다. CircuitBreaker open 상태에서 임시 주문 생성 차단 정책도 포함한다.
 4. 주문 상태 이벤트(주문 생성 시 Payment 서비스 호출 트리거)를 REST 방식으로 설계하고, `OrderControllerV1` API 스펙을 문서화한다.
 5. 주문 관련 DB 마이그레이션 스크립트를 작성하고, 통합 테스트에서 user/product 서비스 Mock 서버(예: WireMock)로 연동 흐름을 검증한다.
 
@@ -54,7 +54,7 @@
 3. 최종 점검 시, user → product → order → payment 순으로 Smoke Test 를 실행하고, Resilience4j 상태 모니터링 및 Zipkin 트레이스를 확인한다.
 
 ## 진행 상황 메모
-- RestDocs 기반 컨트롤러 테스트 작성 완료: product / user / order / payment 서비스. product 내부 전용 API(`stock-release`, `stock-return`)까지 문서화 포함.
+- RestDocs 기반 컨트롤러 테스트 작성 완료: product / user / order / payment 서비스. product 내부 전용 API(`release-stock`, `return-stock`)까지 문서화 포함.
 - `user` 서비스 액세스 토큰 검증 응답에서 `jwtValidatorTimestamp` 필드를 제거했고 테스트/문서 스니펫 갱신 필요.
 - `user` 서비스 인증/회원 API 는 실제 UserRepository + Redis 기반으로 동작하며 JwtAuthorizationFilter 로 보호된다. Gateway 는 동일한 시크릿/Redis 정보를 활용해 AccessTokenValidationFilter 로 1차 검증을 수행하고, `/v1/auth/check-access-token` 은 보조 확인 용도로 유지된다.
 - Gateway 서비스는 AccessTokenValidationFilter 로 JWT 서명/Redis deny 검사를 수행한다. 추가로 로깅·모니터링·서킷브레이커 도입 여부를 검토해야 한다.

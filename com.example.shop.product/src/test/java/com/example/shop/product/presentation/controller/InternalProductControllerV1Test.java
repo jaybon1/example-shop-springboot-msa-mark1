@@ -8,8 +8,8 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
-import com.example.shop.product.presentation.dto.request.ReqPostInternalProductStockReleaseDtoV1;
-import com.example.shop.product.presentation.dto.request.ReqPostInternalProductStockReturnDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReleaseStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReturnStockDtoV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -43,7 +43,7 @@ class InternalProductControllerV1Test {
     @Test
     @DisplayName("내부 API - 재고 차감 요청이 성공하면 PRODUCT_STOCK_RELEASED 응답을 반환한다")
     void releaseProductStock_returnsReleasedCode() throws Exception {
-        ReqPostInternalProductStockReleaseDtoV1 request = ReqPostInternalProductStockReleaseDtoV1.builder()
+        ReqPostInternalProductReleaseStockDtoV1 request = ReqPostInternalProductReleaseStockDtoV1.builder()
                 .orderId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
                 .quantity(3L)
                 .build();
@@ -51,7 +51,7 @@ class InternalProductControllerV1Test {
         UUID productId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
         mockMvc.perform(
-                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/stock-release", productId)
+                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/release-stock", productId)
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
@@ -62,7 +62,7 @@ class InternalProductControllerV1Test {
                 .andExpect(jsonPath("$.data.orderId", equalTo(request.getOrderId().toString())))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
-                                "product-internal-stock-release",
+                                "product-internal-release-stock",
                                 Preprocessors.preprocessRequest(Preprocessors.prettyPrint()),
                                 Preprocessors.preprocessResponse(Preprocessors.prettyPrint()),
                                 ResourceDocumentation.resource(
@@ -84,7 +84,7 @@ class InternalProductControllerV1Test {
     @Test
     @DisplayName("내부 API - 재고 복원 요청이 성공하면 PRODUCT_STOCK_RETURNED 응답을 반환한다")
     void returnProductStock_returnsReturnedCode() throws Exception {
-        ReqPostInternalProductStockReturnDtoV1 request = ReqPostInternalProductStockReturnDtoV1.builder()
+        ReqPostInternalProductReturnStockDtoV1 request = ReqPostInternalProductReturnStockDtoV1.builder()
                 .orderId(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"))
                 .quantity(2L)
                 .build();
@@ -92,7 +92,7 @@ class InternalProductControllerV1Test {
         UUID productId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
 
         mockMvc.perform(
-                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/stock-return", productId)
+                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/return-stock", productId)
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
@@ -103,7 +103,7 @@ class InternalProductControllerV1Test {
                 .andExpect(jsonPath("$.data.orderId", equalTo(request.getOrderId().toString())))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
-                                "product-internal-stock-return",
+                                "product-internal-return-stock",
                                 Preprocessors.preprocessRequest(Preprocessors.prettyPrint()),
                                 Preprocessors.preprocessResponse(Preprocessors.prettyPrint()),
                                 ResourceDocumentation.resource(

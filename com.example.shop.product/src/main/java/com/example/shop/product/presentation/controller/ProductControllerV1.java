@@ -6,7 +6,6 @@ import com.example.shop.product.presentation.dto.response.ResGetProductsDtoV1;
 import com.example.shop.product.presentation.dto.response.ResGetProductDtoV1;
 import com.example.shop.product.presentation.dto.response.ResPostProductsDtoV1;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,28 +23,9 @@ public class ProductControllerV1 {
 
     @GetMapping
     public ResponseEntity<ApiDto<ResGetProductsDtoV1>> getProducts() {
-        List<ResGetProductsDtoV1.ProductDto> productDtoList = List.of(
-                ResGetProductsDtoV1.ProductDto.builder()
-                        .id(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").toString())
-                        .name("샘플 상품 A")
-                        .price(10_000L)
-                        .stock(5L)
-                        .build(),
-                ResGetProductsDtoV1.ProductDto.builder()
-                        .id(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").toString())
-                        .name("샘플 상품 B")
-                        .price(25_000L)
-                        .stock(2L)
-                        .build()
-        );
-
-        ResGetProductsDtoV1 responseBody = ResGetProductsDtoV1.builder()
-                .products(productDtoList)
-                .build();
-
         return ResponseEntity.ok(
                 ApiDto.<ResGetProductsDtoV1>builder()
-                        .data(responseBody)
+                        .data(ResGetProductsDtoV1.builder().build())
                         .build()
         );
     }

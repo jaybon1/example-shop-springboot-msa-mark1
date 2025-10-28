@@ -1,24 +1,35 @@
 package com.example.shop.product.presentation.dto.response;
 
-import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PagedModel;
 
 @Getter
 @Builder
-@AllArgsConstructor
 public class ResGetProductsDtoV1 {
 
-    private final List<ProductDto> products;
+    private final ProductPageDto productPage;
 
     @Getter
-    @Builder
-    @AllArgsConstructor
-    public static class ProductDto {
-        private final String id;
-        private final String name;
-        private final Long price;
-        private final Long stock;
+    @ToString
+    public static class ProductPageDto extends PagedModel<ProductPageDto.ProductDto> {
+
+        public ProductPageDto(Page<ProductDto> page) {
+            super(page);
+        }
+
+        @Getter
+        @Builder
+        public static class ProductDto {
+            private final String id;
+            private final String name;
+            private final Long price;
+            private final Long stock;
+
+        }
+
     }
+
 }

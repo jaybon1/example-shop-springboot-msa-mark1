@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ResPostInternalProductStockReleaseDtoV1 {
+public class ResPostInternalProductReleaseStockDtoV1 {
 
     private final String productId;
     private final String orderId;

@@ -20,8 +20,8 @@
 
 | 메서드 | 엔드포인트 | 설명 | 요청 바디 | 정상 응답 | 실패 시 응답 |
 | --- | --- | --- | --- | --- | --- |
-| POST | `/internal/v1/products/{productId}/stock-release` | 주문 생성 시 재고 차감 및 확정 | `{"orderId": "...", "quantity": 1+}` | 200 + `ApiDto`(`code = PRODUCT_STOCK_RELEASED`, `data`에 현재 재고) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
-| POST | `/internal/v1/products/{productId}/stock-return` | 주문 취소 또는 보상 시 재고 복원 | `{"orderId": "...", "quantity": 1+}` | 200 + `ApiDto`(`code = PRODUCT_STOCK_RETURNED`) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
+| POST | `/internal/v1/products/{productId}/release-stock` | 주문 생성 시 재고 차감 및 확정 | `{"orderId": "...", "quantity": 1+}` | 200 + `ApiDto`(`code = PRODUCT_STOCK_RELEASED`, `data`에 현재 재고) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
+| POST | `/internal/v1/products/{productId}/return-stock` | 주문 취소 또는 보상 시 재고 복원 | `{"orderId": "...", "quantity": 1+}` | 200 + `ApiDto`(`code = PRODUCT_STOCK_RETURNED`) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
 
 #### 내부 API 에러 코드 제안
 - `PRODUCT_STOCK_NOT_FOUND`: productId 존재하지 않음.
@@ -70,10 +70,10 @@
 - `Resilience4j` Retry 와 함께 사용할 경우, Product 서비스 내부에서는 재시도 횟수를 제한해 데드락을 줄인다.
 
 #### API ↔ 도메인 매핑
-- `stock-release` 성공 → Ledger `RELEASE/COMPLETED` + Product.stock 감소.
-- `stock-return` 성공 → Ledger `RETURN/COMPLETED` + Product.stock 증가 + 기존 RELEASE 레코드 `COMPENSATED`.
-- `stock-release` 실패(재고 부족) → Ledger `RELEASE/CANCELLED` 저장 후 Product.stock 변경 없음.
-- `stock-return` 실패(기록 없음) → Ledger 미삽입, 400 + 에러 코드.
+- `release-stock` 성공 → Ledger `RELEASE/COMPLETED` + Product.stock 감소.
+- `return-stock` 성공 → Ledger `RETURN/COMPLETED` + Product.stock 증가 + 기존 RELEASE 레코드 `COMPENSATED`.
+- `release-stock` 실패(재고 부족) → Ledger `RELEASE/CANCELLED` 저장 후 Product.stock 변경 없음.
+- `return-stock` 실패(기록 없음) → Ledger 미삽입, 400 + 에러 코드.
 
 ## Order 서비스 (`com.example.shop.order`)
 
@@ -89,9 +89,9 @@
 > 권한: 일반 사용자는 본인 주문만 조회/취소 가능, ADMIN/MANAGER 는 전체 조회/취소 가능.
 
 ### Product 서비스 호출 규칙
-1. `POST /v1/orders` 처리 중 각 주문 상품에 대해 순차 또는 배치로 `POST /internal/v1/products/{productId}/stock-release` 호출.
-2. 호출 한 건이라도 실패하면, 이미 성공한 항목을 역순으로 `POST /internal/v1/products/{productId}/stock-return` 호출한 뒤 주문을 롤백한다.
-3. 주문 취소(`POST /v1/orders/{id}/cancel`) 시 등록된 모든 주문 아이템에 대해 `stock-return` 호출 후 주문 상태를 `CANCELLED` 로 갱신한다.
+1. `POST /v1/orders` 처리 중 각 주문 상품에 대해 순차 또는 배치로 `POST /internal/v1/products/{productId}/release-stock` 호출.
+2. 호출 한 건이라도 실패하면, 이미 성공한 항목을 역순으로 `POST /internal/v1/products/{productId}/return-stock` 호출한 뒤 주문을 롤백한다.
+3. 주문 취소(`POST /v1/orders/{id}/cancel`) 시 등록된 모든 주문 아이템에 대해 `return-stock` 호출 후 주문 상태를 `CANCELLED` 로 갱신한다.
 4. `orderId` 는 주문 서비스가 생성한 UUID 를 사용하고, Product 측 Ledger/Reservation 과 매핑하여 멱등성·중복 방지를 구현한다.
 
 ### 에러 처리
@@ -191,6 +191,6 @@
 
 ## 진행 메모 (미완료/추가 확인)
 - user 인증 API `/v1/auth/check-access-token` 은 `userId`, `valid`, `remainingSeconds` 만 반환하며 보조 검증용으로 유지 중이다. 추가 메타 정보(역할 등)가 필요하면 DTO 확장 여부를 먼저 결정할 것.
-- Product 내부 API(`stock-release`, `stock-return`) 는 현재 더미 응답이며 멱등성 검증/재고 처리 로직 확정이 필요하다.
+- Product 내부 API(`release-stock`, `return-stock`) 는 현재 더미 응답이며 멱등성 검증/재고 처리 로직 확정이 필요하다.
 - Gateway 에는 공통 로깅, 모니터링, 서킷 브레이커, Rate Limiter 등 보강 과제가 남아 있다.
 - RestDocs → OpenAPI 산출물 경로: 각 서비스 `build/api-spec/` 확인. 중앙 문서화/배포 정책은 추후 결정.
