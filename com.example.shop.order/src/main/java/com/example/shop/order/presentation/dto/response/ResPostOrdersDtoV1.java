@@ -27,7 +27,6 @@ public class ResPostOrdersDtoV1 {
         private final Order.Status status;
         private final Long totalAmount;
         private final Instant createdAt;
-        private final Instant updatedAt;
         private final List<OrderItemDto> orderItemList;
 
         public static OrderDto from(Order order) {
@@ -36,7 +35,6 @@ public class ResPostOrdersDtoV1 {
                     .status(order.getStatus())
                     .totalAmount(order.getTotalAmount())
                     .createdAt(order.getCreatedAt())
-                    .updatedAt(order.getUpdatedAt())
                     .orderItemList(OrderItemDto.from(order.getOrderItemList()))
                     .build();
         }

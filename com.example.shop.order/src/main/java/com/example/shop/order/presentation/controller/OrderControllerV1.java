@@ -34,10 +34,7 @@ public class OrderControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PageableDefault Pageable pageable
     ) {
-        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
-        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
-
-        ResGetOrdersDtoV1 responseBody = orderServiceV1.getOrders(authUserId, authUserRoleList, pageable);
+        ResGetOrdersDtoV1 responseBody = orderServiceV1.getOrders(customUserDetails.getId(), customUserDetails.getRoleList(), pageable);
         return ResponseEntity.ok(
                 ApiDto.<ResGetOrdersDtoV1>builder()
                         .data(responseBody)
@@ -50,10 +47,7 @@ public class OrderControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("id") UUID orderId
     ) {
-        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
-        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
-
-        ResGetOrderDtoV1 responseBody = orderServiceV1.getOrder(authUserId, authUserRoleList, orderId);
+        ResGetOrderDtoV1 responseBody = orderServiceV1.getOrder(customUserDetails.getId(), customUserDetails.getRoleList(), orderId);
         return ResponseEntity.ok(
                 ApiDto.<ResGetOrderDtoV1>builder()
                         .data(responseBody)
@@ -66,10 +60,7 @@ public class OrderControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestBody @Valid ReqPostOrdersDtoV1 reqDto
     ) {
-        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
-        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
-
-        ResPostOrdersDtoV1 responseBody = orderServiceV1.postOrders(authUserId, authUserRoleList, reqDto);
+        ResPostOrdersDtoV1 responseBody = orderServiceV1.postOrders(customUserDetails.getId(), reqDto);
         return ResponseEntity.ok(
                 ApiDto.<ResPostOrdersDtoV1>builder()
                         .message("주문이 생성되었습니다.")
@@ -83,10 +74,7 @@ public class OrderControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("id") UUID orderId
     ) {
-        UUID authUserId = customUserDetails != null ? customUserDetails.getId() : null;
-        List<String> authUserRoleList = customUserDetails != null ? customUserDetails.getRoleList() : List.of();
-
-        orderServiceV1.cancelOrder(authUserId, authUserRoleList, orderId);
+        orderServiceV1.cancelOrder(customUserDetails.getId(), customUserDetails.getRoleList(), orderId);
         return ResponseEntity.ok(
                 ApiDto.builder()
                         .message(orderId + " 주문이 취소되었습니다.")

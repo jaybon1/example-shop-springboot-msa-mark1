@@ -37,8 +37,7 @@ public class OrderServiceV1 {
         if (hasManagerPermission(authUserRoleList)) {
             orderPage = orderRepository.findAll(pageable);
         } else {
-            UUID userId = requireAuthenticatedUser(authUserId);
-            orderPage = orderRepository.findByUserId(userId, pageable);
+            orderPage = orderRepository.findByUserId(authUserId, pageable);
         }
         return ResGetOrdersDtoV1.of(orderPage);
     }
@@ -50,10 +49,7 @@ public class OrderServiceV1 {
     }
 
     @Transactional
-    public ResPostOrdersDtoV1 postOrders(UUID authUserId, List<String> authUserRoleList, ReqPostOrdersDtoV1 reqDto) {
-        UUID userId = requireAuthenticatedUser(authUserId);
-        validateCreateRequest(reqDto);
-
+    public ResPostOrdersDtoV1 postOrders(UUID authUserId, ReqPostOrdersDtoV1 reqDto) {
         ReqPostOrdersDtoV1.OrderDto reqOrder = reqDto.getOrder();
         List<OrderItem> orderItemList = new ArrayList<>();
         long totalAmount = 0L;
@@ -80,7 +76,7 @@ public class OrderServiceV1 {
         }
 
         Order order = Order.builder()
-                .userId(userId)
+                .userId(authUserId)
                 .status(Order.Status.CREATED)
                 .totalAmount(totalAmount)
                 .orderItemList(List.copyOf(orderItemList))
@@ -104,19 +100,7 @@ public class OrderServiceV1 {
         orderRepository.save(cancelledOrder);
     }
 
-    private void validateCreateRequest(ReqPostOrdersDtoV1 reqDto) {
-        if (reqDto == null || reqDto.getOrder() == null) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
-        }
-        if (CollectionUtils.isEmpty(reqDto.getOrder().getOrderItemList())) {
-            throw new OrderException(OrderError.ORDER_ITEMS_EMPTY);
-        }
-    }
-
     private Order findOrder(UUID orderId) {
-        if (orderId == null) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
-        }
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderException(OrderError.ORDER_NOT_FOUND));
     }
@@ -125,8 +109,7 @@ public class OrderServiceV1 {
         if (hasManagerPermission(authUserRoleList)) {
             return;
         }
-        UUID userId = requireAuthenticatedUser(authUserId);
-        if (!order.isOwnedBy(userId)) {
+        if (!order.isOwnedBy(authUserId)) {
             throw new OrderException(OrderError.ORDER_FORBIDDEN);
         }
     }
@@ -138,13 +121,6 @@ public class OrderServiceV1 {
         return authUserRoleList.stream()
                 .filter(Objects::nonNull)
                 .anyMatch(role -> role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER"));
-    }
-
-    private UUID requireAuthenticatedUser(UUID authUserId) {
-        if (authUserId == null) {
-            throw new OrderException(OrderError.ORDER_FORBIDDEN);
-        }
-        return authUserId;
     }
 
     private long safeAdd(long left, long right) {
