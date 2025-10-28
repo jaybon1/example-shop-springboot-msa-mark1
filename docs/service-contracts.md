@@ -20,60 +20,38 @@
 
 | 메서드 | 엔드포인트 | 설명 | 요청 바디 | 정상 응답 | 실패 시 응답 |
 | --- | --- | --- | --- | --- | --- |
-| POST | `/internal/v1/products/{productId}/release-stock` | 주문 생성 시 재고 차감 및 확정 | `{"orderId": "...", "quantity": 1+}` | 200 + `ApiDto`(`code = PRODUCT_STOCK_RELEASED`, `data`에 현재 재고) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
-| POST | `/internal/v1/products/{productId}/return-stock` | 주문 취소 또는 보상 시 재고 복원 | `{"orderId": "...", "quantity": 1+}` | 200 + `ApiDto`(`code = PRODUCT_STOCK_RETURNED`) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
+| POST | `/internal/v1/products/release-stock` | 주문 생성 시 다수 상품 재고 차감 | `{"order":{"orderId"},"productStocks":[{"productId","quantity"}...]}` | 200 + `ApiDto`(`message = "상품 재고 차감이 완료되었습니다."`) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
+| POST | `/internal/v1/products/return-stock` | 주문 취소/보상 시 재고 복원 | `{"order":{"orderId"}}` | 200 + `ApiDto`(`message = "상품 재고 복원이 완료되었습니다."`) | 400 + `ApiDto`(`code` 값으로 원인 식별) |
 
-#### 내부 API 에러 코드 제안
-- `PRODUCT_STOCK_NOT_FOUND`: productId 존재하지 않음.
-- `PRODUCT_STOCK_NOT_ENOUGH`: 요청 수량만큼 차감 불가.
-- `PRODUCT_STOCK_ALREADY_RELEASED`: 동일 `orderId` 에 대한 중복 차감 요청.
-- `PRODUCT_STOCK_NOT_RESERVED`: 반환 요청 시 기존 차감 기록 없음.
-- `PRODUCT_STOCK_PAYLOAD_INVALID`: 주문 번호/수량 등 필드 오류.
+#### 내부 API 에러 코드
+- `PRODUCT_BAD_REQUEST`: 필수 필드 누락, 재고 부족, 동일 주문에 대한 중복 RELEASE/RETURN 요청 등 모든 검증 실패를 현재 이 코드로 통일한다.
+- `PRODUCT_CAN_NOT_FOUND`: 컨트롤러/서비스 공통 검증에서 상품이 존재하지 않을 때 사용한다(단, `release-stock` bulk 처리에서는 존재하지 않는 상품이 요청에 포함되면 현재 아무 작업도 수행하지 않으므로 추후 보완 필요).
 
-> HTTP 상태는 200(성공) / 400(실패)로 통일하고, 호출 측은 `ApiDto.code` 로 장애 원인을 판별한다.
+> HTTP 상태는 200(성공) / 400(실패)로 통일하고, 호출 측은 `ApiDto.code` 와 `message` 로 장애 원인을 판별한다.
 
-### 도메인/데이터 고려사항
-재고 차감/복원 시 `orderId` 기반 멱등성 확보가 필요하다. 모놀리식 Product 도메인에는 차감 이력을 추적하는 모델이 없으므로, 마이크로서비스 전환 시 다음 중 하나의 신규 모델을 도입해야 한다.
-
-- `ProductStockLedger` (권장):  
-  - 컬럼: `id`, `productId`, `orderId`, `adjustmentType(RELEASE|RETURN)`, `quantity`, `status(COMPLETED|CANCELLED)`, `createdAt` 등  
-  - 제약: `(productId, orderId, adjustmentType)` 유니크 인덱스 → 중복 요청 차단  
-  - 반환 시 RELEASE 레코드를 조회하여 수량/상태 검증 후 RETURN 기록 추가
-- 대안으로는 `ProductReservation` 엔티티를 두고 주문별 예약 상태를 관리하되, RELEASE/RETURN 전환 로직을 명확히 관리해야 한다.
-
-동시성: 재고 테이블 업데이트 시 낙관적 락(version) 또는 `for update` 락을 적용해야 재고 오버-차감을 막을 수 있다. Ledger 와 함께 사용할 경우, 재고 업데이트와 Ledger 기록을 하나의 트랜잭션으로 묶는다.
-
-#### Product 재고 모델 세부안
-| 엔티티 | 주요 컬럼 | 제약 조건 / 용도 |
-| --- | --- | --- |
-| `product` | `id`, `name`, `price`, `stock`, `version`, ... | 기존 엔티티. `stock` 은 현재 가용 수량, `version`(낙관적 락) 필드를 추가해 동시 업데이트 충돌 방지 |
-| `product_stock_ledger` | `id`, `product_id`, `order_id`, `adjustment_type`, `quantity`, `status`, `occurred_at`, `expired_at`, `metadata` | `(product_id, order_id, adjustment_type)` 유니크, `status` 는 `COMPLETED`, `COMPENSATED`, `CANCELLED` 등으로 관리 |
-| (선택) `product_stock_reservation` | `product_id`, `order_id`, `reserved_quantity`, `status`, `expires_at`, `created_at`, `updated_at` | 다중 단계(예약→차감→확정)가 필요한 경우 사용. 단순 차감 시 Ledger 만으로 처리 가능 |
-
-`ProductStockLedger` 상태 전이 규칙:
-1. **RELEASE 요청**  
-   - `product_stock_ledger` 에 `adjustment_type = RELEASE`, `status = PENDING` 레코드 삽입.  
-   - `product` 테이블에서 `stock = stock - quantity` 를 시도하며 `version` 비교로 충돌 시 재시도.  
-   - 성공 시 `status = COMPLETED` 로 갱신. 이미 동일 orderId/RELEASE 레코드가 `COMPLETED` 라면 멱등 처리(`PRODUCT_STOCK_ALREADY_RELEASED`).  
-   - 부족한 경우 `status = CANCELLED` 로 기록하고 400 + `PRODUCT_STOCK_NOT_ENOUGH` 반환.
-2. **RETURN 요청**  
-   - 기존 RELEASE 레코드를 조회하여 `COMPLETED` 상태인지 확인.  
-   - 존재하지 않으면 400 + `PRODUCT_STOCK_NOT_RESERVED`.  
-   - 이미 RETURN 이 완료된 경우 400 + `PRODUCT_STOCK_ALREADY_RETURNED`(추가 에러 코드) 반환.  
-   - `product_stock_ledger` 에 `adjustment_type = RETURN`, `status = PENDING` 레코드 삽입 후 `stock = stock + quantity` 업데이트, 완료 시 `status = COMPLETED` 로 변경하고 RELEASE 레코드를 `COMPENSATED` 로 마크한다.
-
-만약 주문 생성 이후 일정 시간 내에 결제가 완료되지 않으면 재고를 자동 복원해야 한다면, `expired_at` 기반으로 배치/스케줄러가 PENDING/COMPLETED 상태를 검사해 반환 처리할 수 있도록 설계한다.
-
-#### 서비스 호출에 대한 트랜잭션/락 전략
-- **낙관적 락**: `@Version` 컬럼을 두고 실패 시 재시도. 트래픽이 높지 않다면 간단하고 중복 호출 방지에 충분하다.
-- **비관적 락**: `SELECT ... FOR UPDATE` 로 row-level lock 을 걸어 다중 노드에서 동시에 차감하는 상황을 더 확실히 제어할 수 있다. Ledger 기록과 함께 사용 시 가장 안전하지만 트래픽이 많을 경우 주의.
-- `Resilience4j` Retry 와 함께 사용할 경우, Product 서비스 내부에서는 재시도 횟수를 제한해 데드락을 줄인다.
+### 도메인/데이터 구현 현황
+- 재고 변동 이력은 `ProductStock`(도메인) ↔ `ProductStockEntity`(JPA) 로 관리한다. 엔티티에는 `(product_id, order_id, type)` 유니크 제약이 걸려 있어 동일 주문이 같은 동작을 두 번 수행하지 못한다.
+- `ProductStockRepository` 는 다음 보조 메서드를 제공한다.  
+  - `existsByOrderIdAndType(orderId, type)`: 주문 단위 멱등성 검사(RELEASE/RETURN 각각).  
+  - `findByOrderId(orderId)`: RETURN 시 기존 RELEASE 레코드를 일괄 조회.  
+  - `findByIdIn(productStockIdList)`: 추후 보상/감사 기능에서 ledger id 기반 조회에 사용.  
+  - `existsByProductIdAndOrderIdAndType(...)`: 특정 상품 단위로 중복 체크가 필요할 때 사용.
+- `ProductServiceV1.postInternalProductsReleaseStock` 흐름:  
+  1. 주문 ID 로 RELEASE 기록이 이미 있는지 검사(`existsByOrderIdAndType`).  
+  2. 요청에 포함된 상품 ID 목록을 `productRepository.findByIdIn` 으로 조회해 현재 재고를 확인하고, 차감 가능한 수량인지 검사한다.  
+  3. 재고를 차감한 뒤, 각 품목에 대해 `ProductStock` ledger(RELEASE 타입)를 저장한다.
+- `ProductServiceV1.postInternalProductsReturnStock` 흐름:  
+  1. RETURN 기록 중복 여부를 선검사한다(`existsByOrderIdAndType(orderId, RETURN)`).  
+  2. 기존 RELEASE ledger 를 `findByOrderId` 로 불러와 연결된 상품을 복원하고, 동일 수량만큼 재고를 증가시킨다.  
+  3. 복원 완료 후 RETURN 타입 ledger 를 추가로 저장한다.
+- 두 내부 메서드 모두 하나의 트랜잭션에서 재고 변경과 ledger 기록을 수행해, 중간 실패 시 DB 가 롤백된다.
+- 현재 구현은 낙관적 락/비관적 락을 사용하지 않는다. 고동시성 환경에서는 `product.stock` 컬럼에 버전 또는 DB 락 전략을 추가하는 방안을 별도로 검토해야 한다.
 
 #### API ↔ 도메인 매핑
-- `release-stock` 성공 → Ledger `RELEASE/COMPLETED` + Product.stock 감소.
-- `return-stock` 성공 → Ledger `RETURN/COMPLETED` + Product.stock 증가 + 기존 RELEASE 레코드 `COMPENSATED`.
-- `release-stock` 실패(재고 부족) → Ledger `RELEASE/CANCELLED` 저장 후 Product.stock 변경 없음.
-- `return-stock` 실패(기록 없음) → Ledger 미삽입, 400 + 에러 코드.
+- `release-stock` 성공 → Product 재고 감소 + `ProductStock(type = RELEASE)` 기록 1건씩 생성.
+- `return-stock` 성공 → Product 재고 증가 + `ProductStock(type = RETURN)` 기록이 추가로 남는다.
+- `release-stock` 실패(중복 요청·재고 부족 등) → 변경 사항 없이 400 + `PRODUCT_BAD_REQUEST`.
+- `return-stock` 실패(중복 RETURN 등) → 변경 사항 없이 400 + `PRODUCT_BAD_REQUEST`.
 
 ## Order 서비스 (`com.example.shop.order`)
 
@@ -89,9 +67,9 @@
 > 권한: 일반 사용자는 본인 주문만 조회/취소 가능, ADMIN/MANAGER 는 전체 조회/취소 가능.
 
 ### Product 서비스 호출 규칙
-1. `POST /v1/orders` 처리 중 각 주문 상품에 대해 순차 또는 배치로 `POST /internal/v1/products/{productId}/release-stock` 호출.
-2. 호출 한 건이라도 실패하면, 이미 성공한 항목을 역순으로 `POST /internal/v1/products/{productId}/return-stock` 호출한 뒤 주문을 롤백한다.
-3. 주문 취소(`POST /v1/orders/{id}/cancel`) 시 등록된 모든 주문 아이템에 대해 `return-stock` 호출 후 주문 상태를 `CANCELLED` 로 갱신한다.
+1. `POST /v1/orders` 처리 시 주문 내 모든 상품을 한 번의 요청으로 `POST /internal/v1/products/release-stock` 에 전달한다.
+2. 호출이 실패하면, 이미 차감된 품목 목록으로 `POST /internal/v1/products/return-stock` 을 호출하고 주문을 롤백한다.
+3. 주문 취소(`POST /v1/orders/{id}/cancel`) 시 동일 DTO 구조를 사용해 `return-stock` 호출 후 주문 상태를 `CANCELLED` 로 갱신한다.
 4. `orderId` 는 주문 서비스가 생성한 UUID 를 사용하고, Product 측 Ledger/Reservation 과 매핑하여 멱등성·중복 방지를 구현한다.
 
 ### 에러 처리
@@ -144,7 +122,7 @@
 - RestTemplate 호출에는 Resilience4j CircuitBreaker + Retry 를 적용하고, 타임아웃 및 fallback 정책을 `application.yml` 에 정의한다.
 
 ## 향후 확인 필요 사항
-1. Product Ledger/Reservation 설계 확정: 엔티티 스키마, 인덱스, 상태 머신 정의.
+1. Order/Payment 서비스에서 새 `release-stock`(orderId + productStocks) / `return-stock`(orderId 단독) 계약을 사용하도록 클라이언트 및 보상 로직을 반영할 것.
 2. 재고 차감/복원 시나리오 테스트: WireMock/Testcontainers 등으로 멀티 서비스 통합 테스트 전략을 수립(후속 작업).
 3. Gateway 레벨 CircuitBreaker/Rate Limiter/모니터링 정책 확정: JWT 검증 필터는 구축되어 있으나 탄력성·관찰성 구성이 필요하다.
 4. User 서비스 DB 마이그레이션 및 Redis 장애 대비 전략 정립: dev 환경은 H2/인메모리 Redis 가정이므로 실제 운영 DB/Failover 전략이 필요하다.
@@ -191,6 +169,6 @@
 
 ## 진행 메모 (미완료/추가 확인)
 - user 인증 API `/v1/auth/check-access-token` 은 `userId`, `valid`, `remainingSeconds` 만 반환하며 보조 검증용으로 유지 중이다. 추가 메타 정보(역할 등)가 필요하면 DTO 확장 여부를 먼저 결정할 것.
-- Product 내부 API(`release-stock`, `return-stock`) 는 현재 더미 응답이며 멱등성 검증/재고 처리 로직 확정이 필요하다.
+- Product 내부 API(`release-stock`, `return-stock`) 는 주문 기반 ledger와 재고 갱신까지 구현되어 있다. Order/Payment 통합 테스트 및 예외 시뮬레이션은 추후 보완해야 한다.
 - Gateway 에는 공통 로깅, 모니터링, 서킷 브레이커, Rate Limiter 등 보강 과제가 남아 있다.
 - RestDocs → OpenAPI 산출물 경로: 각 서비스 `build/api-spec/` 확인. 중앙 문서화/배포 정책은 추후 결정.
