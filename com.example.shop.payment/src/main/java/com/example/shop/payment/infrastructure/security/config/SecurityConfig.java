@@ -71,7 +71,6 @@ public class SecurityConfig {
                     "/actuator/health",
                     "/actuator/info"
             ).permitAll();
-            authorize.requestMatchers("/v1/payments/**").permitAll();
             authorize.requestMatchers("/actuator/**").hasRole("ADMIN");
             authorize.anyRequest().authenticated();
         });

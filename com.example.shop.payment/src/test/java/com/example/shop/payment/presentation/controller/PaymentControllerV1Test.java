@@ -74,7 +74,7 @@ class PaymentControllerV1Test {
 
     @Test
     @DisplayName("결제 생성 요청 시 더미 결제 정보와 메시지를 반환한다")
-    void createPayment_returnsDummyResponse() throws Exception {
+    void postPayments_returnsDummyResponse() throws Exception {
         ReqPostPaymentsDtoV1 request = ReqPostPaymentsDtoV1.builder()
                 .orderId(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
                 .method("CARD")
