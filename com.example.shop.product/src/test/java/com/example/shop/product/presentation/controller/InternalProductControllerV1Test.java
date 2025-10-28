@@ -2,22 +2,19 @@ package com.example.shop.product.presentation.controller;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
-import com.epages.restdocs.apispec.SimpleType;
 import com.example.shop.product.application.service.ProductServiceV1;
 import com.example.shop.product.infrastructure.security.jwt.JwtProperties;
-import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReleaseStockDtoV1;
-import com.example.shop.product.presentation.dto.request.ReqPostInternalProductReturnStockDtoV1;
-import com.example.shop.product.presentation.dto.response.ResPostInternalProductReleaseStockDtoV1;
-import com.example.shop.product.presentation.dto.response.ResPostInternalProductReturnStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
+import com.example.shop.product.presentation.dto.request.ReqPostInternalProductsReturnStockDtoV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,8 +28,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(value = InternalProductControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -67,34 +64,32 @@ class InternalProductControllerV1Test {
     }
 
     @Test
-    @DisplayName("내부 API - 재고 차감 요청이 성공하면 PRODUCT_STOCK_RELEASED 응답을 반환한다")
-    void releaseProductStock_returnsReleasedCode() throws Exception {
-        ReqPostInternalProductReleaseStockDtoV1 request = ReqPostInternalProductReleaseStockDtoV1.builder()
-                .orderId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
-                .quantity(3L)
+    @DisplayName("내부 API - 재고 차감 요청이 성공하면 메시지를 반환한다")
+    void releaseProductStock_returnsMessage() throws Exception {
+        ReqPostInternalProductsReleaseStockDtoV1 request = ReqPostInternalProductsReleaseStockDtoV1.builder()
+                .order(
+                        ReqPostInternalProductsReleaseStockDtoV1.OrderDto.builder()
+                                .orderId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
+                                .build()
+                )
+                .productStocks(List.of(
+                        ReqPostInternalProductsReleaseStockDtoV1.ProductStockDto.builder()
+                                .productId(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
+                                .quantity(3L)
+                                .build()
+                ))
                 .build();
 
-        UUID productId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-
-        ResPostInternalProductReleaseStockDtoV1 serviceResponse = ResPostInternalProductReleaseStockDtoV1.builder()
-                .productId(productId.toString())
-                .orderId(request.getOrderId().toString())
-                .releasedQuantity(request.getQuantity())
-                .currentStock(Math.max(0, 100 - request.getQuantity()))
-                .build();
-        given(productServiceV1.postInternalProductReleaseStock(eq(productId), any(ReqPostInternalProductReleaseStockDtoV1.class)))
-                .willReturn(serviceResponse);
+        willDoNothing().given(productServiceV1).postInternalProductsReleaseStock(any(ReqPostInternalProductsReleaseStockDtoV1.class));
 
         mockMvc.perform(
-                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/release-stock", productId)
+                        RestDocumentationRequestBuilders.post("/internal/v1/products/release-stock")
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code", equalTo("PRODUCT_STOCK_RELEASED")))
-                .andExpect(jsonPath("$.data.productId", equalTo(productId.toString())))
-                .andExpect(jsonPath("$.data.orderId", equalTo(request.getOrderId().toString())))
+                .andExpect(jsonPath("$.message", equalTo("상품 재고 차감이 완료되었습니다.")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "product-internal-release-stock",
@@ -105,11 +100,6 @@ class InternalProductControllerV1Test {
                                                 .tag("Product Internal V1")
                                                 .summary("상품 재고 차감")
                                                 .description("주문 생성 시 내부에서 상품 재고를 차감합니다.")
-                                                .pathParameters(
-                                                        ResourceDocumentation.parameterWithName("productId")
-                                                                .type(SimpleType.STRING)
-                                                                .description("재고를 차감할 상품 ID")
-                                                )
                                                 .build()
                                 )
                         )
@@ -117,34 +107,26 @@ class InternalProductControllerV1Test {
     }
 
     @Test
-    @DisplayName("내부 API - 재고 복원 요청이 성공하면 PRODUCT_STOCK_RETURNED 응답을 반환한다")
-    void returnProductStock_returnsReturnedCode() throws Exception {
-        ReqPostInternalProductReturnStockDtoV1 request = ReqPostInternalProductReturnStockDtoV1.builder()
-                .orderId(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"))
-                .quantity(2L)
+    @DisplayName("내부 API - 재고 복원 요청이 성공하면 메시지를 반환한다")
+    void returnProductStock_returnsMessage() throws Exception {
+        ReqPostInternalProductsReturnStockDtoV1 request = ReqPostInternalProductsReturnStockDtoV1.builder()
+                .order(
+                        ReqPostInternalProductsReturnStockDtoV1.OrderDto.builder()
+                                .orderId(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"))
+                                .build()
+                )
                 .build();
 
-        UUID productId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
-
-        ResPostInternalProductReturnStockDtoV1 serviceResponse = ResPostInternalProductReturnStockDtoV1.builder()
-                .productId(productId.toString())
-                .orderId(request.getOrderId().toString())
-                .returnedQuantity(request.getQuantity())
-                .currentStock(100 + request.getQuantity())
-                .build();
-        given(productServiceV1.postInternalProductReturnStock(eq(productId), any(ReqPostInternalProductReturnStockDtoV1.class)))
-                .willReturn(serviceResponse);
+        willDoNothing().given(productServiceV1).postInternalProductsReturnStock(any(ReqPostInternalProductsReturnStockDtoV1.class));
 
         mockMvc.perform(
-                        RestDocumentationRequestBuilders.post("/internal/v1/products/{productId}/return-stock", productId)
+                        RestDocumentationRequestBuilders.post("/internal/v1/products/return-stock")
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code", equalTo("PRODUCT_STOCK_RETURNED")))
-                .andExpect(jsonPath("$.data.productId", equalTo(productId.toString())))
-                .andExpect(jsonPath("$.data.orderId", equalTo(request.getOrderId().toString())))
+                .andExpect(jsonPath("$.message", equalTo("상품 재고 복원이 완료되었습니다.")))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "product-internal-return-stock",
@@ -155,11 +137,6 @@ class InternalProductControllerV1Test {
                                                 .tag("Product Internal V1")
                                                 .summary("상품 재고 복원")
                                                 .description("주문 취소 등으로 상품 재고를 복원합니다.")
-                                                .pathParameters(
-                                                        ResourceDocumentation.parameterWithName("productId")
-                                                                .type(SimpleType.STRING)
-                                                                .description("재고를 복원할 상품 ID")
-                                                )
                                                 .build()
                                 )
                         )
