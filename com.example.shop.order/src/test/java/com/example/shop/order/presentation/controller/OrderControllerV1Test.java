@@ -199,7 +199,7 @@ class OrderControllerV1Test {
                                 .build()
                 )
                 .build();
-        given(orderServiceV1.postOrders(any(), anyList(), any(ReqPostOrdersDtoV1.class))).willReturn(response);
+        given(orderServiceV1.postOrders(any(), any(ReqPostOrdersDtoV1.class))).willReturn(response);
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders")
