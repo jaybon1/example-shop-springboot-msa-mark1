@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class ReqPostPaymentsDtoV1 {
 
     @Valid
-    @NotNull
+    @NotNull(message = "결제 정보를 입력해주세요.")
     private PaymentDto payment;
 
     @Getter
