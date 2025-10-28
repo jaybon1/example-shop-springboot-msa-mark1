@@ -1,8 +1,6 @@
-package com.example.shop.user.infrastructure.security.auth;
+package com.example.shop.product.infrastructure.security.auth;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.example.shop.user.domain.model.User;
-import com.example.shop.user.domain.model.UserRole;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -28,22 +26,6 @@ public class CustomUserDetails implements UserDetails {
     private String nickname;
     private String email;
     private List<String> roleList;
-
-    public static CustomUserDetails from(User user) {
-        List<String> roles = user.getUserRoleList()
-                .stream()
-                .map(UserRole::getRole)
-                .map(Enum::name)
-                .toList();
-
-        return CustomUserDetails.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .nickname(user.getNickname())
-                .email(user.getEmail())
-                .roleList(List.copyOf(roles))
-                .build();
-    }
 
     public static CustomUserDetails from(DecodedJWT decodedJwt) {
         List<String> roles = decodedJwt.getClaim("roleList").asList(String.class);
