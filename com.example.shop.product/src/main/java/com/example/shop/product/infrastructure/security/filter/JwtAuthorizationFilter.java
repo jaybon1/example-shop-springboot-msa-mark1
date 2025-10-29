@@ -2,7 +2,6 @@ package com.example.shop.product.infrastructure.security.filter;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.example.shop.product.infrastructure.redis.client.AuthRedisClient;
 import com.example.shop.product.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.product.infrastructure.security.jwt.JwtProperties;
 import jakarta.servlet.FilterChain;
@@ -10,7 +9,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,7 +37,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
         CustomUserDetails userDetails;
         try {
-            userDetails = CustomUserDetails.from(decodedAccessJwt);
+            userDetails = CustomUserDetails.of(decodedAccessJwt);
         } catch (RuntimeException exception) {
             filterChain.doFilter(request, response);
             return;

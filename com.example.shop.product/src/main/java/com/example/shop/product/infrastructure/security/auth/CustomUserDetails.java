@@ -27,7 +27,7 @@ public class CustomUserDetails implements UserDetails {
     private String email;
     private List<String> roleList;
 
-    public static CustomUserDetails from(DecodedJWT decodedJwt) {
+    public static CustomUserDetails of(DecodedJWT decodedJwt) {
         List<String> roles = decodedJwt.getClaim("roleList").asList(String.class);
         return CustomUserDetails.builder()
                 .id(UUID.fromString(decodedJwt.getClaim("id").asString()))

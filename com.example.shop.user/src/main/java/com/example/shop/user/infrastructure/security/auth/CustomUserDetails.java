@@ -29,7 +29,7 @@ public class CustomUserDetails implements UserDetails {
     private String email;
     private List<String> roleList;
 
-    public static CustomUserDetails from(User user) {
+    public static CustomUserDetails of(User user) {
         List<String> roles = user.getUserRoleList()
                 .stream()
                 .map(UserRole::getRole)
@@ -45,7 +45,7 @@ public class CustomUserDetails implements UserDetails {
                 .build();
     }
 
-    public static CustomUserDetails from(DecodedJWT decodedJwt) {
+    public static CustomUserDetails of(DecodedJWT decodedJwt) {
         List<String> roles = decodedJwt.getClaim("roleList").asList(String.class);
         return CustomUserDetails.builder()
                 .id(UUID.fromString(decodedJwt.getClaim("id").asString()))

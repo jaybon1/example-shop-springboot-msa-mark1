@@ -37,7 +37,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
         CustomUserDetails userDetails;
         try {
-            userDetails = CustomUserDetails.from(decodedAccessJwt);
+            userDetails = CustomUserDetails.of(decodedAccessJwt);
         } catch (RuntimeException exception) {
             filterChain.doFilter(request, response);
             return;
