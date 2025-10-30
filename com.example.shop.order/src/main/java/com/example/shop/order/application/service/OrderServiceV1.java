@@ -3,6 +3,9 @@ package com.example.shop.order.application.service;
 import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.domain.model.OrderItem;
 import com.example.shop.order.domain.repository.OrderRepository;
+import com.example.shop.order.infrastructure.resttemplate.product.client.ProductRestTemplateClientV1;
+import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
+import com.example.shop.order.infrastructure.resttemplate.product.dto.response.ResGetProductDtoV1;
 import com.example.shop.order.presentation.advice.OrderError;
 import com.example.shop.order.presentation.advice.OrderException;
 import com.example.shop.order.presentation.dto.request.ReqPostOrdersDtoV1;
@@ -11,7 +14,10 @@ import com.example.shop.order.presentation.dto.response.ResGetOrdersDtoV1;
 import com.example.shop.order.presentation.dto.response.ResPostOrdersDtoV1;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +33,7 @@ import org.springframework.util.CollectionUtils;
 public class OrderServiceV1 {
 
     private final OrderRepository orderRepository;
+    private final ProductRestTemplateClientV1 productRestTemplateClientV1;
 
     public ResGetOrdersDtoV1 getOrders(UUID authUserId, List<String> authUserRoleList, Pageable pageable) {
         if (pageable == null) {
@@ -50,8 +57,16 @@ public class OrderServiceV1 {
 
     @Transactional
     public ResPostOrdersDtoV1 postOrders(UUID authUserId, ReqPostOrdersDtoV1 reqDto) {
+        if (reqDto == null || reqDto.getOrder() == null) {
+            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+        }
         ReqPostOrdersDtoV1.OrderDto reqOrder = reqDto.getOrder();
+        if (CollectionUtils.isEmpty(reqOrder.getOrderItemList())) {
+            throw new OrderException(OrderError.ORDER_ITEMS_EMPTY);
+        }
         List<OrderItem> orderItemList = new ArrayList<>();
+        Map<UUID, Long> productQuantityMap = new LinkedHashMap<>();
+        Map<UUID, ResGetProductDtoV1.ProductDto> productCache = new HashMap<>();
         long totalAmount = 0L;
         for (ReqPostOrdersDtoV1.OrderDto.OrderItemDto itemDto : reqOrder.getOrderItemList()) {
             UUID productId = itemDto.getProductId();
@@ -61,13 +76,22 @@ public class OrderServiceV1 {
             }
 
             long quantity = quantityValue;
-            long unitPrice = 0L; // TODO: product service 연동 시 실제 가격 정보로 대체
+            ResGetProductDtoV1.ProductDto productDto = productCache.computeIfAbsent(productId, this::fetchProduct);
+            Long unitPriceValue = productDto.getPrice();
+            if (unitPriceValue == null || unitPriceValue < 0) {
+                throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+            }
+            long unitPrice = unitPriceValue;
             long lineTotal = safeMultiply(unitPrice, quantity);
             totalAmount = safeAdd(totalAmount, lineTotal);
+            long aggregatedQuantity = productQuantityMap.containsKey(productId)
+                    ? safeAdd(productQuantityMap.get(productId), quantity)
+                    : quantity;
+            productQuantityMap.put(productId, aggregatedQuantity);
 
             OrderItem orderItem = OrderItem.builder()
                     .productId(productId)
-                    .productName(null)
+                    .productName(productDto.getName())
                     .unitPrice(unitPrice)
                     .quantity(quantity)
                     .lineTotal(lineTotal)
@@ -84,6 +108,9 @@ public class OrderServiceV1 {
                 .build();
 
         Order savedOrder = orderRepository.save(order);
+        productRestTemplateClientV1.postInternalProductsReleaseStock(
+                buildReleaseStockRequest(savedOrder.getId(), productQuantityMap)
+        );
         return ResPostOrdersDtoV1.of(savedOrder);
     }
 
@@ -137,5 +164,32 @@ public class OrderServiceV1 {
         } catch (ArithmeticException ex) {
             throw new OrderException(OrderError.ORDER_AMOUNT_OVERFLOW);
         }
+    }
+
+    private ResGetProductDtoV1.ProductDto fetchProduct(UUID productId) {
+        ResGetProductDtoV1 response = productRestTemplateClientV1.getProduct(productId);
+        if (response == null || response.getProduct() == null) {
+            throw new OrderException(OrderError.ORDER_PRODUCT_NOT_FOUND);
+        }
+        return response.getProduct();
+    }
+
+    private ReqPostInternalProductsReleaseStockDtoV1 buildReleaseStockRequest(UUID orderId, Map<UUID, Long> productQuantityMap) {
+        return ReqPostInternalProductsReleaseStockDtoV1.builder()
+                .order(
+                        ReqPostInternalProductsReleaseStockDtoV1.OrderDto.builder()
+                                .orderId(orderId)
+                                .build()
+                )
+                .productStocks(
+                        productQuantityMap.entrySet()
+                                .stream()
+                                .map(entry -> ReqPostInternalProductsReleaseStockDtoV1.ProductStockDto.builder()
+                                        .productId(entry.getKey())
+                                        .quantity(entry.getValue())
+                                        .build())
+                                .toList()
+                )
+                .build();
     }
 }
