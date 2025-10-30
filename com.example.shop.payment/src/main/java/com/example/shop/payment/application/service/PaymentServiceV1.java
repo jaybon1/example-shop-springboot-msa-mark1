@@ -2,18 +2,17 @@ package com.example.shop.payment.application.service;
 
 import com.example.shop.payment.domain.model.Payment;
 import com.example.shop.payment.domain.repository.PaymentRepository;
+import com.example.shop.payment.infrastructure.resttemplate.order.client.OrderRestTemplateClientV1;
+import com.example.shop.payment.infrastructure.resttemplate.order.dto.request.ReqPostInternalOrderCompleteDtoV1;
 import com.example.shop.payment.presentation.advice.PaymentError;
 import com.example.shop.payment.presentation.advice.PaymentException;
 import com.example.shop.payment.presentation.dto.request.ReqPostPaymentsDtoV1;
 import com.example.shop.payment.presentation.dto.response.ResGetPaymentDtoV1;
 import com.example.shop.payment.presentation.dto.response.ResPostPaymentsDtoV1;
-import java.time.Instant;
-import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +20,7 @@ import org.springframework.util.StringUtils;
 public class PaymentServiceV1 {
 
     private final PaymentRepository paymentRepository;
+    private final OrderRestTemplateClientV1 orderRestTemplateClientV1;
 
     public ResGetPaymentDtoV1 getPayment(UUID authUserId, UUID paymentId) {
         Payment payment = findPayment(paymentId);
@@ -40,7 +40,18 @@ public class PaymentServiceV1 {
                 .transactionKey(null)
                 .build();
         Payment savedPayment = paymentRepository.save(payment);
-        // TODO 주문 완료 처리 로직 추가
+        orderRestTemplateClientV1.postInternalOrdersComplete(
+                savedPayment.getOrderId(),
+                ReqPostInternalOrderCompleteDtoV1.builder()
+                        .payment(
+                                ReqPostInternalOrderCompleteDtoV1.PaymentDto.builder()
+                                        .paymentId(savedPayment.getId())
+                                        .amount(savedPayment.getAmount())
+                                        .method(savedPayment.getMethod())
+                                        .build()
+                        )
+                        .build()
+        );
         return ResPostPaymentsDtoV1.of(savedPayment);
     }
 
