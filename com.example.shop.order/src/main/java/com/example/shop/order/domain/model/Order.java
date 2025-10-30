@@ -55,6 +55,13 @@ public class Order {
                 .build();
     }
 
+    public Order markPaid(OrderPayment orderPayment) {
+        return toBuilder()
+                .status(Status.PAID)
+                .payment(orderPayment)
+                .build();
+    }
+
     public Order assignPayment(OrderPayment orderPayment) {
         return toBuilder()
                 .payment(orderPayment)

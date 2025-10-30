@@ -17,7 +17,9 @@ public enum OrderError implements GlobalError {
     ORDER_INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "주문 수량이 올바르지 않습니다."),
     ORDER_AMOUNT_OVERFLOW(HttpStatus.BAD_REQUEST, "주문 금액 계산에 실패했습니다."),
     ORDER_BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 주문 요청입니다."),
-    ORDER_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 주문입니다.");
+    ORDER_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 주문입니다."),
+    ORDER_ALREADY_PAID(HttpStatus.BAD_REQUEST, "이미 결제가 완료된 주문입니다."),
+    ORDER_PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 일치하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String errorMessage;

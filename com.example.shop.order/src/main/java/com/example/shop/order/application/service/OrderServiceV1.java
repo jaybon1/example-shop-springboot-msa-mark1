@@ -3,11 +3,13 @@ package com.example.shop.order.application.service;
 import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.domain.model.OrderItem;
 import com.example.shop.order.domain.repository.OrderRepository;
+import com.example.shop.order.domain.vo.OrderPayment;
 import com.example.shop.order.infrastructure.resttemplate.product.client.ProductRestTemplateClientV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.response.ResGetProductDtoV1;
 import com.example.shop.order.presentation.advice.OrderError;
 import com.example.shop.order.presentation.advice.OrderException;
+import com.example.shop.order.presentation.dto.request.ReqPostInternalOrderCompleteDtoV1;
 import com.example.shop.order.presentation.dto.request.ReqPostOrdersDtoV1;
 import com.example.shop.order.presentation.dto.response.ResGetOrderDtoV1;
 import com.example.shop.order.presentation.dto.response.ResGetOrdersDtoV1;
@@ -125,6 +127,40 @@ public class OrderServiceV1 {
 
         Order cancelledOrder = order.markCancelled();
         orderRepository.save(cancelledOrder);
+    }
+
+    @Transactional
+    public void postInternalOrdersComplete(UUID orderId, ReqPostInternalOrderCompleteDtoV1 reqDto) {
+        if (reqDto == null || reqDto.getPayment() == null) {
+            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+        }
+
+        Order order = findOrder(orderId);
+
+        if (Order.Status.CANCELLED.equals(order.getStatus())) {
+            throw new OrderException(OrderError.ORDER_ALREADY_CANCELLED);
+        }
+        if (Order.Status.PAID.equals(order.getStatus())) {
+            throw new OrderException(OrderError.ORDER_ALREADY_PAID);
+        }
+
+        ReqPostInternalOrderCompleteDtoV1.PaymentDto paymentDto = reqDto.getPayment();
+        if (paymentDto.getPaymentId() == null || paymentDto.getMethod() == null) {
+            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+        }
+        if (paymentDto.getAmount() == null || !Objects.equals(order.getTotalAmount(), paymentDto.getAmount())) {
+            throw new OrderException(OrderError.ORDER_PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        OrderPayment orderPayment = OrderPayment.builder()
+                .id(paymentDto.getPaymentId())
+                .status(OrderPayment.Status.COMPLETED)
+                .method(paymentDto.getMethod())
+                .amount(paymentDto.getAmount())
+                .build();
+
+        Order completedOrder = order.markPaid(orderPayment);
+        orderRepository.save(completedOrder);
     }
 
     private Order findOrder(UUID orderId) {
