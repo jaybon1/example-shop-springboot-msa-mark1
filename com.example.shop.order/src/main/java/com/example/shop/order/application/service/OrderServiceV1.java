@@ -6,6 +6,7 @@ import com.example.shop.order.domain.repository.OrderRepository;
 import com.example.shop.order.domain.vo.OrderPayment;
 import com.example.shop.order.infrastructure.resttemplate.product.client.ProductRestTemplateClientV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
+import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReturnStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.response.ResGetProductDtoV1;
 import com.example.shop.order.presentation.advice.OrderError;
 import com.example.shop.order.presentation.advice.OrderException;
@@ -127,6 +128,9 @@ public class OrderServiceV1 {
         }
 
         Order cancelledOrder = order.markCancelled();
+        productRestTemplateClientV1.postInternalProductsReturnStock(
+                buildReturnStockRequest(orderId)
+        );
         orderRepository.save(cancelledOrder);
     }
 
@@ -226,6 +230,16 @@ public class OrderServiceV1 {
                                         .quantity(entry.getValue())
                                         .build())
                                 .toList()
+                )
+                .build();
+    }
+
+    private ReqPostInternalProductsReturnStockDtoV1 buildReturnStockRequest(UUID orderId) {
+        return ReqPostInternalProductsReturnStockDtoV1.builder()
+                .order(
+                        ReqPostInternalProductsReturnStockDtoV1.OrderDto.builder()
+                                .orderId(orderId)
+                                .build()
                 )
                 .build();
     }
