@@ -13,6 +13,7 @@ public enum OrderError implements GlobalError {
     ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 주문에 접근할 수 없습니다."),
     ORDER_ITEMS_EMPTY(HttpStatus.BAD_REQUEST, "주문 상품이 존재하지 않습니다."),
     ORDER_PRODUCT_NOT_FOUND(HttpStatus.BAD_REQUEST, "주문 상품 정보를 찾을 수 없습니다."),
+    ORDER_PRODUCT_DUPLICATED(HttpStatus.BAD_REQUEST, "중복된 상품이 존재합니다."),
     ORDER_PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "상품 재고가 부족합니다."),
     ORDER_INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "주문 수량이 올바르지 않습니다."),
     ORDER_AMOUNT_OVERFLOW(HttpStatus.BAD_REQUEST, "주문 금액 계산에 실패했습니다."),
