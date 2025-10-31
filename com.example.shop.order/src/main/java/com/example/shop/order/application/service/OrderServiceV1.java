@@ -68,7 +68,7 @@ public class OrderServiceV1 {
         }
         List<OrderItem> orderItemList = new ArrayList<>();
         Map<UUID, Long> productQuantityMap = new LinkedHashMap<>();
-        Map<UUID, ResGetProductDtoV1.ProductDto> productCache = new HashMap<>();
+        Map<UUID, ResGetProductDtoV1.ProductDto> productCacheMap = new HashMap<>();
         long totalAmount = 0L;
         for (ReqPostOrdersDtoV1.OrderDto.OrderItemDto itemDto : reqOrder.getOrderItemList()) {
             UUID productId = itemDto.getProductId();
@@ -78,7 +78,7 @@ public class OrderServiceV1 {
             }
 
             long quantity = quantityValue;
-            ResGetProductDtoV1.ProductDto productDto = productCache.computeIfAbsent(productId, this::fetchProduct);
+            ResGetProductDtoV1.ProductDto productDto = productCacheMap.computeIfAbsent(productId, this::fetchProduct);
             Long unitPriceValue = productDto.getPrice();
             if (unitPriceValue == null || unitPriceValue < 0) {
                 throw new OrderException(OrderError.ORDER_BAD_REQUEST);
