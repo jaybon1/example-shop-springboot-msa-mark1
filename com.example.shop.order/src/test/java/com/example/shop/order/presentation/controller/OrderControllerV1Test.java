@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,6 +17,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
 import com.example.shop.order.application.service.OrderServiceV1;
 import com.example.shop.order.domain.model.Order;
+import com.example.shop.order.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.order.presentation.dto.request.ReqPostOrdersDtoV1;
 import com.example.shop.order.presentation.dto.response.ResGetOrderDtoV1;
 import com.example.shop.order.presentation.dto.response.ResGetOrdersDtoV1;
@@ -27,6 +29,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -40,6 +44,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @WebMvcTest(value = OrderControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -62,6 +68,29 @@ class OrderControllerV1Test {
 
     @MockitoBean
     private OrderServiceV1 orderServiceV1;
+
+    private static final CustomUserDetails TEST_USER_DETAILS = CustomUserDetails.builder()
+            .id(UUID.fromString("11111111-1111-1111-1111-111111111111"))
+            .username("test-user")
+            .nickname("tester")
+            .email("tester@example.com")
+            .roleList(List.of("USER"))
+            .build();
+
+    @BeforeEach
+    void setUpSecurityContext() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                TEST_USER_DETAILS,
+                null,
+                TEST_USER_DETAILS.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @TestConfiguration
     static class JwtTestConfig {
@@ -94,6 +123,7 @@ class OrderControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/orders")
+                                .with(user(TEST_USER_DETAILS))
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
@@ -149,6 +179,7 @@ class OrderControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/orders/{id}", orderId)
+                                .with(user(TEST_USER_DETAILS))
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
@@ -203,6 +234,7 @@ class OrderControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders")
+                                .with(user(TEST_USER_DETAILS))
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
@@ -235,6 +267,7 @@ class OrderControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders/{id}/cancel", orderId)
+                                .with(user(TEST_USER_DETAILS))
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())

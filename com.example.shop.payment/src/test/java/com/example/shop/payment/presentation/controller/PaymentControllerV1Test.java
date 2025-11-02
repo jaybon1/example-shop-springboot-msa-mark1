@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,13 +14,17 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
 import com.example.shop.payment.application.service.PaymentServiceV1;
 import com.example.shop.payment.domain.model.Payment;
+import com.example.shop.payment.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.payment.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.payment.presentation.dto.request.ReqPostPaymentsDtoV1;
 import com.example.shop.payment.presentation.dto.response.ResGetPaymentDtoV1;
 import com.example.shop.payment.presentation.dto.response.ResPostPaymentsDtoV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +37,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.operation.preprocess.Preprocessors;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -55,6 +62,29 @@ class PaymentControllerV1Test {
 
     @MockitoBean
     private PaymentServiceV1 paymentServiceV1;
+
+    private static final CustomUserDetails TEST_USER_DETAILS = CustomUserDetails.builder()
+            .id(UUID.fromString("11111111-1111-1111-1111-111111111111"))
+            .username("test-user")
+            .nickname("tester")
+            .email("tester@example.com")
+            .roleList(List.of("USER"))
+            .build();
+
+    @BeforeEach
+    void setUpSecurityContext() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                TEST_USER_DETAILS,
+                null,
+                TEST_USER_DETAILS.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @TestConfiguration
     static class JwtTestConfig {
@@ -86,6 +116,7 @@ class PaymentControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.get("/v1/payments/{id}", paymentId)
+                                .with(user(TEST_USER_DETAILS))
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                 )
                 .andExpect(status().isOk())
@@ -141,6 +172,7 @@ class PaymentControllerV1Test {
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/payments")
+                                .with(user(TEST_USER_DETAILS))
                                 .header(HttpHeaders.AUTHORIZATION, DUMMY_BEARER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))

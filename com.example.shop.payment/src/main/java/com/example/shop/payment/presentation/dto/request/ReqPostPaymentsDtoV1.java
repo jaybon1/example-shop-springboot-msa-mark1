@@ -28,7 +28,7 @@ public class ReqPostPaymentsDtoV1 {
         @NotNull(message = "주문 ID를 입력해주세요.")
         private UUID orderId;
 
-        @NotBlank(message = "결제 수단을 입력해주세요.")
+        @NotNull(message = "결제 수단을 입력해주세요.")
         private Payment.Method method;
 
         @NotNull(message = "결제 금액을 입력해주세요.")
