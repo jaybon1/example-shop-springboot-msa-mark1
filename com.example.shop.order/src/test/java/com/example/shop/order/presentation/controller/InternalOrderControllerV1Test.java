@@ -12,6 +12,7 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.example.shop.order.application.service.OrderServiceV1;
+import com.example.shop.order.domain.vo.OrderPayment;
 import com.example.shop.order.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.order.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.order.presentation.dto.request.ReqPostInternalOrderCompleteDtoV1;
