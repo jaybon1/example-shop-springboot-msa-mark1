@@ -56,13 +56,7 @@ public class OrderServiceV1 {
 
     @Transactional
     public ResPostOrdersDtoV1 postOrders(UUID authUserId, ReqPostOrdersDtoV1 reqDto) {
-        if (reqDto == null || reqDto.getOrder() == null) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
-        }
         ReqPostOrdersDtoV1.OrderDto reqOrder = reqDto.getOrder();
-        if (CollectionUtils.isEmpty(reqOrder.getOrderItemList())) {
-            throw new OrderException(OrderError.ORDER_ITEMS_EMPTY);
-        }
         if (
                 reqOrder.getOrderItemList().stream().map(orderItemDto -> orderItemDto.getProductId()).collect(Collectors.toSet()).size()
                         != reqOrder.getOrderItemList().size()
