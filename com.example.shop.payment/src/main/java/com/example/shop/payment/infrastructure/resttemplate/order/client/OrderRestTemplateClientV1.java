@@ -39,9 +39,8 @@ public class OrderRestTemplateClientV1 {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    public void postInternalOrdersComplete(UUID orderId, ReqPostInternalOrderCompleteDtoV1 reqDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+    public void postInternalOrdersComplete(UUID orderId, ReqPostInternalOrderCompleteDtoV1 reqDto, String accessJwt) {
+        HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalOrderCompleteDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
 
         try {
@@ -86,5 +85,15 @@ public class OrderRestTemplateClientV1 {
             }
         }
         return new PaymentException(PaymentError.PAYMENT_BAD_REQUEST);
+    }
+
+    private HttpHeaders createJsonHeadersWithAuthorization(String accessJwt) {
+        if (!StringUtils.hasText(accessJwt)) {
+            throw new PaymentException(PaymentError.PAYMENT_FORBIDDEN);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(accessJwt);
+        return headers;
     }
 }

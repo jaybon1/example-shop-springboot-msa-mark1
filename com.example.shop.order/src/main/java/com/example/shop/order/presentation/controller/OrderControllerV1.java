@@ -60,7 +60,11 @@ public class OrderControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestBody @Valid ReqPostOrdersDtoV1 reqDto
     ) {
-        ResPostOrdersDtoV1 responseBody = orderServiceV1.postOrders(customUserDetails.getId(), reqDto);
+        ResPostOrdersDtoV1 responseBody = orderServiceV1.postOrders(
+                customUserDetails.getId(),
+                customUserDetails.getAccessJwt(),
+                reqDto
+        );
         return ResponseEntity.ok(
                 ApiDto.<ResPostOrdersDtoV1>builder()
                         .message("주문이 생성되었습니다.")
@@ -74,7 +78,12 @@ public class OrderControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("id") UUID orderId
     ) {
-        orderServiceV1.cancelOrder(customUserDetails.getId(), customUserDetails.getRoleList(), orderId);
+        orderServiceV1.cancelOrder(
+                customUserDetails.getId(),
+                customUserDetails.getRoleList(),
+                customUserDetails.getAccessJwt(),
+                orderId
+        );
         return ResponseEntity.ok(
                 ApiDto.builder()
                         .message(orderId + " 주문이 취소되었습니다.")

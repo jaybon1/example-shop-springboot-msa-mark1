@@ -87,9 +87,8 @@ public class ProductRestTemplateClientV1 {
         }
     }
 
-    public void postInternalProductsReleaseStock(ReqPostInternalProductsReleaseStockDtoV1 reqDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+    public void postInternalProductsReleaseStock(ReqPostInternalProductsReleaseStockDtoV1 reqDto, String accessJwt) {
+        HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalProductsReleaseStockDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
 
         try {
@@ -106,9 +105,8 @@ public class ProductRestTemplateClientV1 {
         }
     }
 
-    public void postInternalProductsReturnStock(ReqPostInternalProductsReturnStockDtoV1 reqDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+    public void postInternalProductsReturnStock(ReqPostInternalProductsReturnStockDtoV1 reqDto, String accessJwt) {
+        HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalProductsReturnStockDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
 
         try {
@@ -167,5 +165,15 @@ public class ProductRestTemplateClientV1 {
             }
         }
         return new OrderException(OrderError.ORDER_BAD_REQUEST);
+    }
+
+    private HttpHeaders createJsonHeadersWithAuthorization(String accessJwt) {
+        if (!StringUtils.hasText(accessJwt)) {
+            throw new OrderException(OrderError.ORDER_FORBIDDEN);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(accessJwt);
+        return headers;
     }
 }

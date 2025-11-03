@@ -43,7 +43,11 @@ public class PaymentControllerV1 {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestBody @Valid ReqPostPaymentsDtoV1 reqDto
     ) {
-        ResPostPaymentsDtoV1 responseBody = paymentServiceV1.postPayments(customUserDetails.getId(), reqDto);
+        ResPostPaymentsDtoV1 responseBody = paymentServiceV1.postPayments(
+                customUserDetails.getId(),
+                customUserDetails.getAccessJwt(),
+                reqDto
+        );
         return ResponseEntity.ok(
                 ApiDto.<ResPostPaymentsDtoV1>builder()
                         .message("결제가 완료되었습니다.")

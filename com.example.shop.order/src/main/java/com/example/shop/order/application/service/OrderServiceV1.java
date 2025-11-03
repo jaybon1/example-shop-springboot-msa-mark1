@@ -55,7 +55,7 @@ public class OrderServiceV1 {
     }
 
     @Transactional
-    public ResPostOrdersDtoV1 postOrders(UUID authUserId, ReqPostOrdersDtoV1 reqDto) {
+    public ResPostOrdersDtoV1 postOrders(UUID authUserId, String accessJwt, ReqPostOrdersDtoV1 reqDto) {
         ReqPostOrdersDtoV1.OrderDto reqOrder = reqDto.getOrder();
         if (
                 reqOrder.getOrderItemList().stream().map(orderItemDto -> orderItemDto.getProductId()).collect(Collectors.toSet()).size()
@@ -107,13 +107,14 @@ public class OrderServiceV1 {
 
         Order savedOrder = orderRepository.save(order);
         productRestTemplateClientV1.postInternalProductsReleaseStock(
-                buildReleaseStockRequest(savedOrder.getId(), productQuantityMap)
+                buildReleaseStockRequest(savedOrder.getId(), productQuantityMap),
+                accessJwt
         );
         return ResPostOrdersDtoV1.of(savedOrder);
     }
 
     @Transactional
-    public void cancelOrder(UUID authUserId, List<String> authUserRoleList, UUID orderId) {
+    public void cancelOrder(UUID authUserId, List<String> authUserRoleList, String accessJwt, UUID orderId) {
         Order order = findOrder(orderId);
         validateAccessPermission(order, authUserId, authUserRoleList);
 
@@ -123,7 +124,8 @@ public class OrderServiceV1 {
 
         Order cancelledOrder = order.markCancelled();
         productRestTemplateClientV1.postInternalProductsReturnStock(
-                buildReturnStockRequest(orderId)
+                buildReturnStockRequest(orderId),
+                accessJwt
         );
         orderRepository.save(cancelledOrder);
     }

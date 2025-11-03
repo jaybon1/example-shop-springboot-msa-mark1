@@ -58,7 +58,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Import(OrderControllerV1Test.JwtTestConfig.class)
 class OrderControllerV1Test {
 
-    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+    private static final String TEST_ACCESS_JWT =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + TEST_ACCESS_JWT;
 
     @Autowired
     private MockMvc mockMvc;
@@ -74,6 +76,7 @@ class OrderControllerV1Test {
             .username("test-user")
             .nickname("tester")
             .email("tester@example.com")
+            .accessJwt(TEST_ACCESS_JWT)
             .roleList(List.of("USER"))
             .build();
 
@@ -230,7 +233,7 @@ class OrderControllerV1Test {
                                 .build()
                 )
                 .build();
-        given(orderServiceV1.postOrders(any(), any(ReqPostOrdersDtoV1.class))).willReturn(response);
+        given(orderServiceV1.postOrders(any(), eq(TEST_ACCESS_JWT), any(ReqPostOrdersDtoV1.class))).willReturn(response);
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders")
@@ -263,7 +266,7 @@ class OrderControllerV1Test {
     void cancelOrder_returnsSuccessMessage() throws Exception {
         UUID orderId = UUID.fromString("bbbbbbbb-0000-0000-0000-bbbbbbbb0000");
 
-        willDoNothing().given(orderServiceV1).cancelOrder(any(), anyList(), eq(orderId));
+        willDoNothing().given(orderServiceV1).cancelOrder(any(), anyList(), eq(TEST_ACCESS_JWT), eq(orderId));
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders/{id}/cancel", orderId)

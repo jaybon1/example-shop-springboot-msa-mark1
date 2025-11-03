@@ -52,7 +52,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class PaymentControllerV1Test {
 
-    private static final String DUMMY_BEARER_TOKEN = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+    private static final String TEST_ACCESS_JWT =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+    private static final String DUMMY_BEARER_TOKEN = "Bearer " + TEST_ACCESS_JWT;
 
     @Autowired
     private MockMvc mockMvc;
@@ -68,6 +70,7 @@ class PaymentControllerV1Test {
             .username("test-user")
             .nickname("tester")
             .email("tester@example.com")
+            .accessJwt(TEST_ACCESS_JWT)
             .roleList(List.of("USER"))
             .build();
 
@@ -168,7 +171,7 @@ class PaymentControllerV1Test {
                                 .build()
                 )
                 .build();
-        given(paymentServiceV1.postPayments(any(), any(ReqPostPaymentsDtoV1.class))).willReturn(response);
+        given(paymentServiceV1.postPayments(any(), eq(TEST_ACCESS_JWT), any(ReqPostPaymentsDtoV1.class))).willReturn(response);
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/payments")

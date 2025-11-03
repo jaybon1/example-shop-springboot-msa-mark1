@@ -29,7 +29,7 @@ public class PaymentServiceV1 {
     }
 
     @Transactional
-    public ResPostPaymentsDtoV1 postPayments(UUID authUserId, ReqPostPaymentsDtoV1 reqDto) {
+    public ResPostPaymentsDtoV1 postPayments(UUID authUserId, String accessJwt, ReqPostPaymentsDtoV1 reqDto) {
         // TODO 결제 처리 로직 추가
         Payment payment = Payment.builder()
                 .orderId(reqDto.getPayment().getOrderId())
@@ -50,7 +50,8 @@ public class PaymentServiceV1 {
                                         .method(savedPayment.getMethod())
                                         .build()
                         )
-                        .build()
+                        .build(),
+                accessJwt
         );
         return ResPostPaymentsDtoV1.of(savedPayment);
     }
