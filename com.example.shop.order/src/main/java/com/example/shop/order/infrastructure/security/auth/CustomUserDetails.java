@@ -25,6 +25,7 @@ public class CustomUserDetails implements UserDetails {
     private String username;
     private String nickname;
     private String email;
+    private String accessJwt;
     private List<String> roleList;
 
     public static CustomUserDetails of(DecodedJWT decodedJwt) {
@@ -34,12 +35,17 @@ public class CustomUserDetails implements UserDetails {
                 .username(decodedJwt.getClaim("username").asString())
                 .nickname(decodedJwt.getClaim("nickname").asString())
                 .email(decodedJwt.getClaim("email").asString())
+                .accessJwt(decodedJwt.getToken())
                 .roleList(roles == null ? List.of() : List.copyOf(roles))
                 .build();
     }
 
     public List<String> getRoleList() {
         return roleList == null ? List.of() : Collections.unmodifiableList(roleList);
+    }
+
+    public String getAccessJwt() {
+        return accessJwt;
     }
 
     @Override
