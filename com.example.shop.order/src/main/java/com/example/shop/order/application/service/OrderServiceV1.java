@@ -114,7 +114,7 @@ public class OrderServiceV1 {
     }
 
     @Transactional
-    public void cancelOrder(UUID authUserId, List<String> authUserRoleList, String accessJwt, UUID orderId) {
+    public void postOrderCancel(UUID authUserId, List<String> authUserRoleList, String accessJwt, UUID orderId) {
         Order order = findOrder(orderId);
         validateAccessPermission(order, authUserId, authUserRoleList);
 

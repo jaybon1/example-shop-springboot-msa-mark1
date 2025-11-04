@@ -8,7 +8,7 @@ import com.example.shop.order.presentation.dto.response.ResGetOrderDtoV1;
 import com.example.shop.order.presentation.dto.response.ResGetOrdersDtoV1;
 import com.example.shop.order.presentation.dto.response.ResPostOrdersDtoV1;
 import jakarta.validation.Valid;
-import java.util.List;
+
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -74,11 +74,11 @@ public class OrderControllerV1 {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiDto<Object>> cancelOrder(
+    public ResponseEntity<ApiDto<Object>> postOrderCancel(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("id") UUID orderId
     ) {
-        orderServiceV1.cancelOrder(
+        orderServiceV1.postOrderCancel(
                 customUserDetails.getId(),
                 customUserDetails.getRoleList(),
                 customUserDetails.getAccessJwt(),

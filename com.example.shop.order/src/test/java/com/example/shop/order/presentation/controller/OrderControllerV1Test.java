@@ -263,10 +263,10 @@ class OrderControllerV1Test {
 
     @Test
     @DisplayName("주문 취소 요청 시 성공 메시지를 반환한다")
-    void cancelOrder_returnsSuccessMessage() throws Exception {
+    void postOrder_Cancel_returnsSuccessMessage() throws Exception {
         UUID orderId = UUID.fromString("bbbbbbbb-0000-0000-0000-bbbbbbbb0000");
 
-        willDoNothing().given(orderServiceV1).cancelOrder(any(), anyList(), eq(TEST_ACCESS_JWT), eq(orderId));
+        willDoNothing().given(orderServiceV1).postOrderCancel(any(), anyList(), eq(TEST_ACCESS_JWT), eq(orderId));
 
         mockMvc.perform(
                         RestDocumentationRequestBuilders.post("/v1/orders/{id}/cancel", orderId)
