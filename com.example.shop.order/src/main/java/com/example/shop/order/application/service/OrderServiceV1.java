@@ -4,6 +4,7 @@ import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.domain.model.OrderItem;
 import com.example.shop.order.domain.repository.OrderRepository;
 import com.example.shop.order.domain.vo.OrderPayment;
+import com.example.shop.order.infrastructure.resttemplate.payment.client.PaymentRestTemplateClientV1;
 import com.example.shop.order.infrastructure.resttemplate.product.client.ProductRestTemplateClientV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReturnStockDtoV1;
@@ -33,6 +34,7 @@ public class OrderServiceV1 {
 
     private final OrderRepository orderRepository;
     private final ProductRestTemplateClientV1 productRestTemplateClientV1;
+    private final PaymentRestTemplateClientV1 paymentRestTemplateClientV1;
 
     public ResGetOrdersDtoV1 getOrders(UUID authUserId, List<String> authUserRoleList, Pageable pageable) {
         if (pageable == null) {
@@ -122,12 +124,19 @@ public class OrderServiceV1 {
             throw new OrderException(OrderError.ORDER_ALREADY_CANCELLED);
         }
 
+        OrderPayment orderPayment = order.getPayment();
+        if (orderPayment != null
+                && orderPayment.getId() != null
+                && OrderPayment.Status.COMPLETED.equals(orderPayment.getStatus())) {
+            paymentRestTemplateClientV1.postInternalPaymentsCancel(orderPayment.getId(), accessJwt);
+        }
+
         Order cancelledOrder = order.markCancelled();
+        orderRepository.save(cancelledOrder);
         productRestTemplateClientV1.postInternalProductsReturnStock(
                 buildReturnStockRequest(orderId),
                 accessJwt
         );
-        orderRepository.save(cancelledOrder);
     }
 
     @Transactional
