@@ -225,11 +225,11 @@ class OrderControllerV1Test {
                 )
                 .build();
 
+        String savedOrderId = UUID.randomUUID().toString();
         ResPostOrdersDtoV1 response = ResPostOrdersDtoV1.builder()
                 .order(
                         ResPostOrdersDtoV1.OrderDto.builder()
-                                .status(Order.Status.CREATED)
-                                .orderItemList(List.of())
+                                .id(savedOrderId)
                                 .build()
                 )
                 .build();
@@ -244,7 +244,7 @@ class OrderControllerV1Test {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo("주문이 생성되었습니다.")))
-                .andExpect(jsonPath("$.data.order.status", equalTo("CREATED")))
+                .andExpect(jsonPath("$.data.order.id", equalTo(savedOrderId)))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "order-create-order",

@@ -162,12 +162,6 @@ class PaymentControllerV1Test {
                 .payment(
                         ResPostPaymentsDtoV1.PaymentDto.builder()
                                 .id(UUID.randomUUID().toString())
-                                .status("COMPLETED")
-                                .method("CARD")
-                                .amount(50_000L)
-                                .approvedAt(Instant.now())
-                                .transactionKey("tx-9999")
-                                .orderId(request.getPayment().getOrderId().toString())
                                 .build()
                 )
                 .build();
@@ -182,7 +176,7 @@ class PaymentControllerV1Test {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", equalTo("결제가 완료되었습니다.")))
-                .andExpect(jsonPath("$.data.payment.method", equalTo("CARD")))
+                .andExpect(jsonPath("$.data.payment.id", equalTo(response.getPayment().getId())))
                 .andDo(
                         MockMvcRestDocumentationWrapper.document(
                                 "payment-create-payment",

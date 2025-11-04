@@ -12,6 +12,7 @@ import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.example.shop.payment.application.service.PaymentServiceV1;
 import com.example.shop.payment.infrastructure.security.auth.CustomUserDetails;
+import com.example.shop.payment.infrastructure.security.jwt.JwtProperties;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -29,6 +30,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 
 @WebMvcTest(value = InternalPaymentControllerV1.class, properties = {
         "spring.cloud.config.enabled=false",
@@ -72,6 +75,14 @@ class InternalPaymentControllerV1Test {
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();
+    }
+
+    @TestConfiguration
+    static class JwtTestConfig {
+        @Bean
+        JwtProperties jwtProperties() {
+            return new JwtProperties("Authorization", "Bearer ", "access-token");
+        }
     }
 
     @Test
