@@ -66,7 +66,7 @@ public class UserServiceV1 {
             throw new UserException(UserError.USER_BAD_REQUEST);
         }
         User deletedUser = user.markDeleted(Instant.now(), authUserId);
-        authRedisClient.denyBy(deletedUser.getId().toString(), Instant.now().getEpochSecond());
+        authRedisClient.denyBy(String.valueOf(deletedUser.getId()), Instant.now().getEpochSecond());
         userRepository.save(deletedUser);
     }
 

@@ -21,22 +21,10 @@ public class ResPostPaymentsDtoV1 {
     @Builder
     public static class PaymentDto {
         private final String id;
-        private final String status;
-        private final String method;
-        private final Long amount;
-        private final Instant approvedAt;
-        private final String transactionKey;
-        private final String orderId;
 
         public static PaymentDto from(Payment payment) {
             return PaymentDto.builder()
-                    .id(payment.getId().toString())
-                    .status(payment.getStatus().toString())
-                    .method(payment.getMethod().toString())
-                    .amount(payment.getAmount())
-                    .approvedAt(payment.getCreatedAt())
-                    .transactionKey(payment.getTransactionKey())
-                    .orderId(payment.getOrderId().toString())
+                    .id(String.valueOf(payment.getId()))
                     .build();
         }
     }

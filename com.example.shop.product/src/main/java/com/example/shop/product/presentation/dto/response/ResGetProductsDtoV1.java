@@ -60,7 +60,7 @@ public class ResGetProductsDtoV1 {
 
             public static ProductDto from(Product product) {
                 return ProductDto.builder()
-                        .id(product.getId().toString())
+                        .id(String.valueOf(product.getId()))
                         .name(product.getName())
                         .price(product.getPrice())
                         .stock(product.getStock())

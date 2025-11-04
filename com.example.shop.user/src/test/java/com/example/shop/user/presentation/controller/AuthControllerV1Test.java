@@ -17,7 +17,7 @@ import com.example.shop.user.application.service.AuthServiceV1;
 import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
 import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
-import com.example.shop.user.presentation.dto.request.ReqAuthPostRefreshDtoV1;
+import com.example.shop.user.presentation.dto.request.ReqPostAuthRefreshDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthCheckAccessTokenDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthInvalidateBeforeTokenDtoV1;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthLoginDtoV1;
@@ -169,7 +169,7 @@ class AuthControllerV1Test {
     @Test
     @DisplayName("리프레시 요청 시 새로운 토큰을 반환한다")
     void refresh_returnsNewJwtPair() throws Exception {
-        ReqAuthPostRefreshDtoV1 request = ReqAuthPostRefreshDtoV1.builder()
+        ReqPostAuthRefreshDtoV1 request = ReqPostAuthRefreshDtoV1.builder()
                 .refreshJwt("refresh-dummy-token")
                 .build();
 
@@ -177,7 +177,7 @@ class AuthControllerV1Test {
                 .accessJwt("new-access-token")
                 .refreshJwt("new-refresh-token")
                 .build();
-        given(authServiceV1.refresh(any(ReqAuthPostRefreshDtoV1.class))).willReturn(response);
+        given(authServiceV1.refresh(any(ReqPostAuthRefreshDtoV1.class))).willReturn(response);
 
         mockMvc.perform(post("/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -65,7 +65,7 @@ public class ResGetUsersDtoV1 {
 
             public static UserDto from(User user) {
                 return UserDto.builder()
-                        .id(user.getId().toString())
+                        .id(String.valueOf(user.getId()))
                         .username(user.getUsername())
                         .nickname(user.getNickname())
                         .email(user.getEmail())

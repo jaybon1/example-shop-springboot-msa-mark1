@@ -54,7 +54,7 @@ public class AuthControllerV1 {
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiDto<ResPostAuthRefreshDtoV1>> refresh(
-            @RequestBody @Valid ReqAuthPostRefreshDtoV1 reqDto
+            @RequestBody @Valid ReqPostAuthRefreshDtoV1 reqDto
     ) {
         ResPostAuthRefreshDtoV1 responseBody = authServiceV1.refresh(reqDto);
 

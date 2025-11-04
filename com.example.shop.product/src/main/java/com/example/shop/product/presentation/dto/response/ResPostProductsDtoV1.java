@@ -26,7 +26,7 @@ public class ResPostProductsDtoV1 {
 
         public static ProductDto from(Product product) {
             return ProductDto.builder()
-                    .id(product.getId().toString())
+                    .id(String.valueOf(product.getId()))
                     .build();
         }
     }

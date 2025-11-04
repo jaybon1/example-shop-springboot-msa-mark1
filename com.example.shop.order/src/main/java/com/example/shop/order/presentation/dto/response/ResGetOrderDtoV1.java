@@ -35,7 +35,7 @@ public class ResGetOrderDtoV1 {
 
         public static OrderDto from(Order order) {
             return OrderDto.builder()
-                    .id(order.getId() != null ? order.getId().toString() : null)
+                    .id(String.valueOf(order.getId()))
                     .status(order.getStatus())
                     .totalAmount(order.getTotalAmount())
                     .createdAt(order.getCreatedAt())
@@ -68,8 +68,8 @@ public class ResGetOrderDtoV1 {
                 return null;
             }
             return OrderItemDto.builder()
-                    .id(orderItem.getId() != null ? orderItem.getId().toString() : null)
-                    .productId(orderItem.getProductId() != null ? orderItem.getProductId().toString() : null)
+                    .id(String.valueOf(orderItem.getId()))
+                    .productId(String.valueOf(orderItem.getProductId()))
                     .productName(orderItem.getProductName())
                     .unitPrice(orderItem.getUnitPrice())
                     .quantity(orderItem.getQuantity())
@@ -92,7 +92,7 @@ public class ResGetOrderDtoV1 {
                 return null;
             }
             return PaymentDto.builder()
-                    .id(payment.getId() != null ? payment.getId().toString() : null)
+                    .id(String.valueOf(payment.getId()))
                     .status(payment.getStatus())
                     .method(payment.getMethod())
                     .amount(payment.getAmount())

@@ -30,7 +30,7 @@ public class ResGetPaymentDtoV1 {
 
         public static PaymentDto from(Payment payment) {
             return PaymentDto.builder()
-                    .id(payment.getId().toString())
+                    .id(String.valueOf(payment.getId()))
                     .status(payment.getStatus().toString())
                     .method(payment.getMethod().toString())
                     .amount(payment.getAmount())

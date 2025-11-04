@@ -21,7 +21,7 @@ public class JwtTokenGenerator {
     public String generateAccessToken(User user) {
         Objects.requireNonNull(user, "user must not be null");
         return createAccessToken(
-                user.getId().toString(),
+                String.valueOf(user.getId()),
                 user.getUsername(),
                 user.getNickname(),
                 user.getEmail(),
@@ -33,7 +33,7 @@ public class JwtTokenGenerator {
 
     public String generateRefreshToken(User user) {
         Objects.requireNonNull(user, "user must not be null");
-        return createRefreshToken(user.getId().toString());
+        return createRefreshToken(String.valueOf(user.getId()));
     }
 
     public String generateAccessToken(CustomUserDetails userDetails) {

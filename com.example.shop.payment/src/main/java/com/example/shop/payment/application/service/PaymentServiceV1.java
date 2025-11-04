@@ -37,7 +37,7 @@ public class PaymentServiceV1 {
                 .status(Payment.Status.COMPLETED)
                 .method(reqDto.getPayment().getMethod())
                 .amount(reqDto.getPayment().getAmount())
-                .transactionKey(null)
+                .transactionKey(UUID.randomUUID().toString())
                 .build();
         Payment savedPayment = paymentRepository.save(payment);
         orderRestTemplateClientV1.postInternalOrdersComplete(

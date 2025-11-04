@@ -84,7 +84,7 @@ public class AuthServiceV1 {
         );
     }
 
-    public ResPostAuthRefreshDtoV1 refresh(ReqAuthPostRefreshDtoV1 reqDto) {
+    public ResPostAuthRefreshDtoV1 refresh(ReqPostAuthRefreshDtoV1 reqDto) {
         DecodedJWT decodedRefreshJwt = verifyToken(reqDto.getRefreshJwt(), jwtProperties.getRefreshSubject());
         UUID userId = parseUserId(decodedRefreshJwt);
         User user = userRepository.findById(userId)
@@ -158,7 +158,7 @@ public class AuthServiceV1 {
         validateAccess(authUserId, authRoleList, targetUser);
         long nowEpochSecond = Instant.now().getEpochSecond();
         User updatedUser = targetUser.updateJwtValidator(nowEpochSecond);
-        authRedisClient.denyBy(updatedUser.getId().toString(), nowEpochSecond);
+        authRedisClient.denyBy(String.valueOf(updatedUser.getId()), nowEpochSecond);
         userRepository.save(updatedUser);
     }
 

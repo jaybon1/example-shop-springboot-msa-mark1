@@ -59,7 +59,7 @@ public class ResGetOrdersDtoV1 {
 
             public static OrderDto from(Order order) {
                 return OrderDto.builder()
-                        .id(order.getId() != null ? order.getId().toString() : null)
+                        .id(String.valueOf(order.getId()))
                         .status(order.getStatus())
                         .totalAmount(order.getTotalAmount())
                         .createdAt(order.getCreatedAt())
