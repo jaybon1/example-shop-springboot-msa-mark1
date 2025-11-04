@@ -2,6 +2,11 @@
 
 본 문서는 `example-shop-springboot-msa-mark1` 전환 작업을 위한 Product · Order · User · Gateway 서비스의 REST 계약과 내부 연동 규칙을 정의한다. 모든 응답은 공통 모듈의 `ApiDto<T>` 포맷을 따른다.
 
+## 공통 규칙
+- 내부 API(`*/internal/v1/*`) 호출 시에도 `Authorization: Bearer <accessJwt>` 헤더를 필수로 전달한다. Order·Payment 서비스는 `CustomUserDetails.accessJwt` 값을 그대로 재사용한다.
+- Resilience4j CircuitBreaker/Retry 설정은 Config Server 프로퍼티로 주입되며, RestTemplate 호출 타임아웃은 4초(연결/읽기)로 통일했다.
+- 성공 응답은 200, 비즈니스 검증 실패는 400/403/404 를 사용하며, 상세 원인은 `ApiDto.code` 와 `message` 로 판별한다.
+
 ## Product 서비스 (`com.example.shop.product`)
 
 ### 퍼블릭 API (`/v1/products`)
@@ -59,10 +64,10 @@
 
 | 메서드 | 엔드포인트 | 설명 | 쿼리/바디 | 정상 응답 | 주요 에러 코드(HTTP 4xx) |
 | --- | --- | --- | --- | --- | --- |
-| GET | `/v1/orders` | 주문 목록 조회 | `page`, `size`, `sort` | 200 + `orderPage`(status, totalAmount 등) | `ORDER_FORBIDDEN` |
-| GET | `/v1/orders/{id}` | 주문 상세 조회 | - | 200 + 주문, 주문상품, 결제 요약 | `ORDER_NOT_FOUND`, `ORDER_FORBIDDEN` |
-| POST | `/v1/orders` | 주문 생성 | `{"order": {"orderItemList": [{"productId": "...", "quantity": 1+}, ...]}}` | 200 + 생성된 주문 요약(상품 목록/총액) | `ORDER_BAD_REQUEST`, `ORDER_PRODUCT_NOT_FOUND`, `ORDER_PRODUCT_OUT_OF_STOCK` |
-| POST | `/v1/orders/{id}/cancel` | 주문 취소 | - | 200 | `ORDER_NOT_FOUND`, `ORDER_ALREADY_CANCELLED`, `ORDER_FORBIDDEN` |
+| GET | `/v1/orders` | 주문 목록 조회 | `page`, `size`, `sort` | 200 + `orderPage`(id, status, totalAmount, createdAt) | `ORDER_FORBIDDEN` |
+| GET | `/v1/orders/{id}` | 주문 상세 조회 | - | 200 + 주문 + 주문상품 + 결제 요약 | `ORDER_NOT_FOUND`, `ORDER_FORBIDDEN` |
+| POST | `/v1/orders` | 주문 생성 | `{"order": {"orderItemList": [{"productId": "...", "quantity": 1+}, ...]}}` | 200 + `order`(id) | `ORDER_BAD_REQUEST`, `ORDER_PRODUCT_NOT_FOUND`, `ORDER_PRODUCT_OUT_OF_STOCK` |
+| POST | `/v1/orders/{id}/cancel` | 주문 취소 | - | 200 + 메시지(`{orderId} 주문이 취소되었습니다.`) | `ORDER_NOT_FOUND`, `ORDER_ALREADY_CANCELLED`, `ORDER_FORBIDDEN` |
 
 > 권한: 일반 사용자는 본인 주문만 조회/취소 가능, ADMIN/MANAGER 는 전체 조회/취소 가능.
 
@@ -77,6 +82,39 @@
   예) `PRODUCT_STOCK_NOT_ENOUGH` → 주문 생성 실패, 주문 레코드 저장 금지.
 - Order 서비스 자체 오류는 기존 `OrderError` 코드를 유지(HTTP 400/403/404).
 - 보상 호출이 실패할 경우를 대비해 Retry/CircuitBreaker 전략을 Resilience4j 로 명시한다. 보상 실패가 반복될 경우 DB 트랜잭션에 보상 상태를 기록하고 운영 경고를 발생시키는 절차가 필요하다.
+
+### Payment 서비스 호출 규칙
+1. 주문 취소 시 결제 정보가 존재하고 `status = COMPLETED` 인 경우 `POST /internal/v1/payments/{paymentId}/cancel` 을 호출해 결제를 먼저 취소한다.
+2. Payment 내부 API 는 바디 없이 호출하며, 성공 시 `ApiDto.message = "{paymentId} 결제가 취소되었습니다."` 를 반환한다.
+3. 실패 에러 코드 처리  
+   - `PAYMENT_NOT_FOUND`, `PAYMENT_ALREADY_CANCELLED`: `PaymentRestTemplateClientV1` 이 `OrderException(OrderError.ORDER_BAD_REQUEST)` 로 변환한다(현재 구현은 취소를 중단하며, 향후 무시 정책으로 전환 가능).  
+   - 기타 오류: 동일하게 `ORDER_BAD_REQUEST` 로 변환한다.
+4. Payment 취소가 성공했을 때만 Product `return-stock` 을 호출한다. 결제 취소 단계에서 예외가 발생하면 주문 상태/재고는 변경되지 않는다.
+
+## Payment 서비스 (`com.example.shop.payment`)
+
+### 퍼블릭 API (`/v1/payments`)
+
+| 메서드 | 엔드포인트 | 설명 | 요청/파라미터 | 정상 응답 | 주요 에러 코드 |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/v1/payments/{id}` | 결제 단건 조회 | Path `id` (UUID) | 200 + `payment`(id,status,method,amount,approvedAt,orderId,transactionKey) | `PAYMENT_NOT_FOUND`, `PAYMENT_FORBIDDEN` |
+| POST | `/v1/payments` | 결제 생성 | `{"payment":{"orderId","method","amount"}}` | 200 + `payment`(id,status,method,amount,approvedAt,orderId,transactionKey) | `PAYMENT_BAD_REQUEST`, `PAYMENT_INVALID_AMOUNT` |
+
+> 권한: 본인 결제만 조회/생성 가능. ADMIN/MANAGER 정책은 추후 확장 가능.
+
+### 내부 API (`/internal/v1/payments`)
+
+| 메서드 | 엔드포인트 | 설명 | 요청 바디 | 정상 응답 | 실패 시 응답 |
+| --- | --- | --- | --- | --- | --- |
+| POST | `/internal/v1/payments/{id}/cancel` | 주문 취소 시 결제 보상 | - (헤더만 전송) | 200 + `ApiDto`(`message = "{paymentId} 결제가 취소되었습니다."`) | 400 + `ApiDto`(`code = PAYMENT_NOT_FOUND / PAYMENT_ALREADY_CANCELLED / PAYMENT_BAD_REQUEST`) |
+
+### 도메인/연동 메모
+- `PaymentServiceV1.postPayments` 는 결제를 `COMPLETED` 상태로 저장한 뒤 Order 서비스 `POST /internal/v1/orders/{id}/complete` 를 호출해 주문 상태를 동기화한다.
+- `PaymentServiceV1.postInternalPaymentsCancel` 은 결제를 `CANCELLED` 로 마킹하고 저장한다. 이미 취소된 결제는 `PAYMENT_ALREADY_CANCELLED` 오류를 발생시킨다.
+- RestTemplate 호출 전용 클라이언트  
+  - `OrderRestTemplateClientV1`: 결제 성공 시 주문 완료 알림.  
+  - (신규) `InternalPaymentControllerV1` + Order 서비스 `PaymentRestTemplateClientV1`: 주문 취소 시 결제 취소를 수행.
+- 결제 도메인은 아직 외부 PG 연동이 없으며, `transactionKey` 생성/저장은 TODO 상태다.
 
 ## Gateway 서비스 (`com.example.shop.gateway`)
 
@@ -122,9 +160,9 @@
 - RestTemplate 호출에는 Resilience4j CircuitBreaker + Retry 를 적용하고, 타임아웃 및 fallback 정책을 `application.yml` 에 정의한다.
 
 ## 향후 확인 필요 사항
-1. Order/Payment 서비스에서 새 `release-stock`(orderId + productStocks) / `return-stock`(orderId 단독) 계약을 사용하도록 클라이언트 및 보상 로직을 반영할 것.
-2. 재고 차감/복원 시나리오 테스트: WireMock/Testcontainers 등으로 멀티 서비스 통합 테스트 전략을 수립(후속 작업).
-3. Gateway 레벨 CircuitBreaker/Rate Limiter/모니터링 정책 확정: JWT 검증 필터는 구축되어 있으나 탄력성·관찰성 구성이 필요하다.
+1. Payment 취소 오류(`PAYMENT_NOT_FOUND`, `PAYMENT_ALREADY_CANCELLED`) 를 Order 취소 흐름에서 허용할지 정책 확정 및 예외 매핑 조정.
+2. 재고 차감/보상·결제 취소 등 멀티 서비스 통합 시나리오 테스트를 WireMock/Testcontainers 기반으로 자동화.
+3. Gateway 레벨 CircuitBreaker/Rate Limiter/모니터링 정책 확정: JWT 검증 필터만 존재하므로 관찰성·탄력성 구성이 필요하다.
 4. User 서비스 DB 마이그레이션 및 Redis 장애 대비 전략 정립: dev 환경은 H2/인메모리 Redis 가정이므로 실제 운영 DB/Failover 전략이 필요하다.
 
 ## User 서비스 (`com.example.shop.user`)
