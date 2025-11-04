@@ -74,12 +74,12 @@ public class OrderServiceV1 {
             }
 
             long quantity = quantityValue;
-            ResGetProductDtoV1.ProductDto productDto = fetchProduct(productId);
-            Long unitPriceValue = productDto.getPrice();
-            if (unitPriceValue == null || unitPriceValue < 0) {
-                throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+            ResGetProductDtoV1.ProductDto product = fetchProduct(productId);
+            Long productPrice = product.getPrice();
+            if (productPrice == null || productPrice < 0) {
+                throw new OrderException(OrderError.ORDER_PRODUCT_OUT_OF_STOCK);
             }
-            long unitPrice = unitPriceValue;
+            long unitPrice = productPrice;
             long lineTotal = safeMultiply(unitPrice, quantity);
             totalAmount = safeAdd(totalAmount, lineTotal);
             long aggregatedQuantity = productQuantityMap.containsKey(productId)
@@ -89,7 +89,7 @@ public class OrderServiceV1 {
 
             OrderItem orderItem = OrderItem.builder()
                     .productId(productId)
-                    .productName(productDto.getName())
+                    .productName(product.getName())
                     .unitPrice(unitPrice)
                     .quantity(quantity)
                     .lineTotal(lineTotal)
