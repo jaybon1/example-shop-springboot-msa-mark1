@@ -56,6 +56,17 @@ public class PaymentServiceV1 {
         return ResPostPaymentsDtoV1.of(savedPayment);
     }
 
+    @Transactional
+    public void postInternalPaymentsCancel(UUID paymentId) {
+        Payment payment = findPayment(paymentId);
+        if (Payment.Status.CANCELLED.equals(payment.getStatus())) {
+            throw new PaymentException(PaymentError.PAYMENT_ALREADY_CANCELLED);
+        }
+        // TODO 결제 취소 처리 로직 추가
+        Payment cancelledPayment = payment.markCancelled();
+        paymentRepository.save(cancelledPayment);
+    }
+
     private Payment findPayment(UUID paymentId) {
         return paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentException(PaymentError.PAYMENT_NOT_FOUND));
