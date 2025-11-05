@@ -11,25 +11,25 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class AuthRedisClient {
 
-    private static final String USER_DENY_PREFIX = "auth:deny:";
+    private static final String AUTH_DENY_PREFIX = "auth:deny:";
 
     private final StringRedisTemplate stringRedisTemplate;
     private final JwtProperties jwtProperties;
 
     public void denyBy(String userId, Long jwtValidator) {
-        String key = USER_DENY_PREFIX + userId;
+        String key = AUTH_DENY_PREFIX + userId;
         stringRedisTemplate.opsForValue().set(key, jwtValidator.toString());
         stringRedisTemplate.expire(key, Duration.ofMillis(jwtProperties.getAccessExpirationMillis()));
     }
 
     public Long getBy(String userId) {
-        String key = USER_DENY_PREFIX + userId;
+        String key = AUTH_DENY_PREFIX + userId;
         String stringValue = stringRedisTemplate.opsForValue().get(key);
         return stringValue != null ? Long.valueOf(stringValue) : null;
     }
 
     public void cancelDenyBy(String userId) {
-        String key = USER_DENY_PREFIX + userId;
+        String key = AUTH_DENY_PREFIX + userId;
         stringRedisTemplate.delete(key);
     }
 
