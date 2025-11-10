@@ -1,6 +1,7 @@
 package com.example.shop.order.infrastructure.resttemplate.payment.client;
 
 import com.example.shop.global.presentation.dto.ApiDto;
+import com.example.shop.order.application.client.PaymentClientV1;
 import com.example.shop.order.presentation.advice.OrderError;
 import com.example.shop.order.presentation.advice.OrderException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -23,7 +24,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PaymentRestTemplateClientV1 {
+public class PaymentRestTemplateClientV1 implements PaymentClientV1 {
 
     private static final String PAYMENT_SERVICE_BASE_URL = "http://payment-service";
     private static final String POST_INTERNAL_PAYMENT_CANCEL_URL =
@@ -38,6 +39,7 @@ public class PaymentRestTemplateClientV1 {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    @Override
     public void postInternalPaymentsCancel(UUID paymentId, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<Void> httpEntity = new HttpEntity<>(headers);

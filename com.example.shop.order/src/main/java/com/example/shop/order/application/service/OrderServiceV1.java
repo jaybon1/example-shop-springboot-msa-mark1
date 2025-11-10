@@ -1,11 +1,11 @@
 package com.example.shop.order.application.service;
 
+import com.example.shop.order.application.client.PaymentClientV1;
+import com.example.shop.order.application.client.ProductClientV1;
 import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.domain.model.OrderItem;
 import com.example.shop.order.domain.repository.OrderRepository;
 import com.example.shop.order.domain.vo.OrderPayment;
-import com.example.shop.order.infrastructure.resttemplate.payment.client.PaymentRestTemplateClientV1;
-import com.example.shop.order.infrastructure.resttemplate.product.client.ProductRestTemplateClientV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReturnStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.response.ResGetProductDtoV1;
@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 public class OrderServiceV1 {
 
     private final OrderRepository orderRepository;
-    private final ProductRestTemplateClientV1 productRestTemplateClientV1;
-    private final PaymentRestTemplateClientV1 paymentRestTemplateClientV1;
+    private final ProductClientV1 productClientV1;
+    private final PaymentClientV1 paymentClientV1;
 
     public ResGetOrdersDtoV1 getOrders(UUID authUserId, List<String> authUserRoleList, Pageable pageable) {
         if (pageable == null) {
@@ -108,7 +108,7 @@ public class OrderServiceV1 {
                 .build();
 
         Order savedOrder = orderRepository.save(order);
-        productRestTemplateClientV1.postInternalProductsReleaseStock(
+        productClientV1.postInternalProductsReleaseStock(
                 buildReleaseStockRequest(savedOrder.getId(), productQuantityMap),
                 accessJwt
         );
@@ -128,12 +128,12 @@ public class OrderServiceV1 {
         if (orderPayment != null
                 && orderPayment.getId() != null
                 && OrderPayment.Status.COMPLETED.equals(orderPayment.getStatus())) {
-            paymentRestTemplateClientV1.postInternalPaymentsCancel(orderPayment.getId(), accessJwt);
+            paymentClientV1.postInternalPaymentsCancel(orderPayment.getId(), accessJwt);
         }
 
         Order cancelledOrder = order.markCancelled();
         orderRepository.save(cancelledOrder);
-        productRestTemplateClientV1.postInternalProductsReturnStock(
+        productClientV1.postInternalProductsReturnStock(
                 buildReturnStockRequest(orderId),
                 accessJwt
         );
@@ -213,7 +213,7 @@ public class OrderServiceV1 {
     }
 
     private ResGetProductDtoV1.ProductDto fetchProduct(UUID productId) {
-        ResGetProductDtoV1 response = productRestTemplateClientV1.getProduct(productId);
+        ResGetProductDtoV1 response = productClientV1.getProduct(productId);
         if (response == null || response.getProduct() == null) {
             throw new OrderException(OrderError.ORDER_PRODUCT_NOT_FOUND);
         }

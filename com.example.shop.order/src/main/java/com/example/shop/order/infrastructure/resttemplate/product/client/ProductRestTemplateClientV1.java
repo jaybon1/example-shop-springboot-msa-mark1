@@ -1,6 +1,7 @@
 package com.example.shop.order.infrastructure.resttemplate.product.client;
 
 import com.example.shop.global.presentation.dto.ApiDto;
+import com.example.shop.order.application.client.ProductClientV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReleaseStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.request.ReqPostInternalProductsReturnStockDtoV1;
 import com.example.shop.order.infrastructure.resttemplate.product.dto.response.ResGetProductDtoV1;
@@ -29,7 +30,7 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ProductRestTemplateClientV1 {
+public class ProductRestTemplateClientV1 implements ProductClientV1 {
 
     private static final String PRODUCT_SERVICE_BASE_URL = "http://product-service";
     private static final String GET_PRODUCTS_URL = PRODUCT_SERVICE_BASE_URL + "/v1/products";
@@ -52,6 +53,7 @@ public class ProductRestTemplateClientV1 {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    @Override
     public ResGetProductsDtoV1 getProducts(Integer page, Integer size, String sort, String name) {
         String url = buildGetProductsUrl(page, size, sort, name);
 
@@ -70,6 +72,7 @@ public class ProductRestTemplateClientV1 {
         }
     }
 
+    @Override
     public ResGetProductDtoV1 getProduct(UUID productId) {
         try {
             ResponseEntity<ApiDto<ResGetProductDtoV1>> responseEntity = restTemplate.exchange(
@@ -87,6 +90,7 @@ public class ProductRestTemplateClientV1 {
         }
     }
 
+    @Override
     public void postInternalProductsReleaseStock(ReqPostInternalProductsReleaseStockDtoV1 reqDto, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalProductsReleaseStockDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
@@ -105,6 +109,7 @@ public class ProductRestTemplateClientV1 {
         }
     }
 
+    @Override
     public void postInternalProductsReturnStock(ReqPostInternalProductsReturnStockDtoV1 reqDto, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalProductsReturnStockDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
