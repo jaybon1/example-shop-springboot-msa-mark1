@@ -1,14 +1,13 @@
 package com.example.shop.payment.presentation.advice;
 
+import com.example.shop.global.presentation.advice.GlobalExceptionHandler;
 import com.example.shop.global.presentation.dto.ApiDto;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@Slf4j
 @RestControllerAdvice
-public class PaymentExceptionHandler {
+public class PaymentExceptionHandler extends GlobalExceptionHandler {
 
     @ExceptionHandler(PaymentException.class)
     public ResponseEntity<ApiDto<Object>> handlePaymentException(PaymentException exception) {

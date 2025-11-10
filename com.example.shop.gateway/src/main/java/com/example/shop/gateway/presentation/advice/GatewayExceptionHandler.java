@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import reactor.core.publisher.Mono;
 
 @RestControllerAdvice
-@Order(0)
 public class GatewayExceptionHandler {
 
     @ExceptionHandler(GatewayException.class)
