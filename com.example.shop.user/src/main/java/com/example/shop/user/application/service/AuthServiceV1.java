@@ -7,7 +7,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.shop.user.domain.model.User;
 import com.example.shop.user.domain.model.UserRole;
 import com.example.shop.user.domain.repository.UserRepository;
-import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.user.infrastructure.redis.cache.AuthRedisCache;
 import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.user.infrastructure.security.jwt.JwtTokenGenerator;
 import com.example.shop.user.presentation.advice.AuthError;
@@ -42,7 +42,7 @@ public class AuthServiceV1 {
     private final JwtTokenGenerator jwtTokenGenerator;
     private final JwtProperties jwtProperties;
 
-    private final AuthRedisClient authRedisClient;
+    private final AuthRedisCache authRedisCache;
 
 
     @Transactional
@@ -117,7 +117,7 @@ public class AuthServiceV1 {
         }
 
         UUID userId = parseUserId(decodedAccessJwt);
-        Long jwtValidator = authRedisClient.getBy(decodedAccessJwt.getClaim("id").toString());
+        Long jwtValidator = authRedisCache.getBy(decodedAccessJwt.getClaim("id").toString());
         if (jwtValidator != null && jwtValidator > decodedAccessJwt.getIssuedAt().toInstant().getEpochSecond()) {
             return ResPostAuthCheckAccessTokenDtoV1.builder()
                     .userId(userId.toString())
@@ -158,7 +158,7 @@ public class AuthServiceV1 {
         validateAccess(authUserId, authRoleList, targetUser);
         long nowEpochSecond = Instant.now().getEpochSecond();
         User updatedUser = targetUser.updateJwtValidator(nowEpochSecond);
-        authRedisClient.denyBy(String.valueOf(updatedUser.getId()), nowEpochSecond);
+        authRedisCache.denyBy(String.valueOf(updatedUser.getId()), nowEpochSecond);
         userRepository.save(updatedUser);
     }
 

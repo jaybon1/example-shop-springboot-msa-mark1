@@ -5,7 +5,7 @@ import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.SimpleType;
 import com.example.shop.user.application.service.UserServiceV1;
-import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.user.infrastructure.redis.cache.AuthRedisCache;
 import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.user.presentation.dto.response.ResGetUserDtoV1;
 import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
@@ -54,7 +54,7 @@ class UserControllerV1Test {
     private UserServiceV1 userServiceV1;
 
     @MockitoBean
-    private AuthRedisClient authRedisClient;
+    private AuthRedisCache authRedisCache;
 
     @DynamicPropertySource
     static void jwtProperties(DynamicPropertyRegistry registry) {

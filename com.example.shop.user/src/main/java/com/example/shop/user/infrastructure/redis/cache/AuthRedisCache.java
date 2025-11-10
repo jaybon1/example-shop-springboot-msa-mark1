@@ -1,6 +1,6 @@
-package com.example.shop.gateway.infrastructure.redis.client;
+package com.example.shop.user.infrastructure.redis.cache;
 
-import com.example.shop.gateway.infrastructure.security.jwt.JwtProperties;
+import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -9,7 +9,7 @@ import java.time.Duration;
 
 @Component
 @RequiredArgsConstructor
-public class AuthRedisClient {
+public class AuthRedisCache {
 
     private static final String AUTH_DENY_PREFIX = "auth:deny:";
 

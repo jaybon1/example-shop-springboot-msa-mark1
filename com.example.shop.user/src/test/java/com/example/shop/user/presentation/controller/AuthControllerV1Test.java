@@ -14,7 +14,7 @@ import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
 import com.epages.restdocs.apispec.ResourceDocumentation;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.example.shop.user.application.service.AuthServiceV1;
-import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.user.infrastructure.redis.cache.AuthRedisCache;
 import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.user.presentation.dto.request.ReqPostAuthRefreshDtoV1;
@@ -71,7 +71,7 @@ class AuthControllerV1Test {
     private AuthServiceV1 authServiceV1;
 
     @MockitoBean
-    private AuthRedisClient authRedisClient;
+    private AuthRedisCache authRedisCache;
 
     @AfterEach
     void clearSecurityContext() {

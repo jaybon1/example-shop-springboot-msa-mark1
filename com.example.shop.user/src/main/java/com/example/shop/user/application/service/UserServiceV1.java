@@ -3,7 +3,7 @@ package com.example.shop.user.application.service;
 import com.example.shop.user.domain.model.User;
 import com.example.shop.user.domain.model.UserRole;
 import com.example.shop.user.domain.repository.UserRepository;
-import com.example.shop.user.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.user.infrastructure.redis.cache.AuthRedisCache;
 import com.example.shop.user.presentation.advice.UserError;
 import com.example.shop.user.presentation.advice.UserException;
 import com.example.shop.user.presentation.dto.response.ResGetUsersDtoV1;
@@ -26,7 +26,7 @@ public class UserServiceV1 {
 
     private final UserRepository userRepository;
 
-    private final AuthRedisClient authRedisClient;
+    private final AuthRedisCache authRedisCache;
 
     public ResGetUsersDtoV1 getUsers(
             UUID authUserId,
@@ -66,7 +66,7 @@ public class UserServiceV1 {
             throw new UserException(UserError.USER_BAD_REQUEST);
         }
         User deletedUser = user.markDeleted(Instant.now(), authUserId);
-        authRedisClient.denyBy(String.valueOf(deletedUser.getId()), Instant.now().getEpochSecond());
+        authRedisCache.denyBy(String.valueOf(deletedUser.getId()), Instant.now().getEpochSecond());
         userRepository.save(deletedUser);
     }
 

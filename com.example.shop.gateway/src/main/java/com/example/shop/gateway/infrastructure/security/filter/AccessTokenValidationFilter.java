@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.example.shop.gateway.infrastructure.redis.client.AuthRedisClient;
+import com.example.shop.gateway.infrastructure.redis.cache.AuthRedisCache;
 import com.example.shop.gateway.infrastructure.security.jwt.JwtProperties;
 import com.example.shop.gateway.presentation.advice.GatewayError;
 import com.example.shop.gateway.presentation.advice.GatewayException;
@@ -27,7 +27,7 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
 
     private final JwtProperties jwtProperties;
 
-    private final AuthRedisClient authRedisClient;
+    private final AuthRedisCache authRedisCache;
 
 //    private final AuthRestTemplateClientV1 authRestTemplateClientV1;
 
@@ -55,7 +55,7 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
             throw new GatewayException(GatewayError.GATEWAY_TOKEN_INVALID);
         }
 
-        Long jwtValidator = authRedisClient.getBy(id);
+        Long jwtValidator = authRedisCache.getBy(id);
         if (jwtValidator != null && jwtValidator > decodedAccessJwt.getIssuedAtAsInstant().toEpochMilli()) {
             throw new GatewayException(GatewayError.GATEWAY_TOKEN_INVALID);
         }
