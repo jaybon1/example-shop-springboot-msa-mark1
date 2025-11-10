@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.example.shop.user.infrastructure.redis.cache.AuthRedisCache;
+import com.example.shop.user.application.cache.AuthCache;
 import com.example.shop.user.infrastructure.security.auth.CustomUserDetails;
 import com.example.shop.user.infrastructure.security.jwt.JwtProperties;
 import jakarta.servlet.FilterChain;
@@ -27,7 +27,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     private final JwtProperties jwtProperties;
 
-    private final AuthRedisCache authRedisCache;
+    private final AuthCache authCache;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -49,7 +49,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             return;
         }
 
-        Long jwtValidator = authRedisCache.getBy(decodedAccessJwt.getClaim("id").toString());
+        Long jwtValidator = authCache.getBy(decodedAccessJwt.getClaim("id").toString());
         if (jwtValidator != null && jwtValidator > decodedAccessJwt.getIssuedAt().toInstant().getEpochSecond()) {
             filterChain.doFilter(request, response);
             return;
