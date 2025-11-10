@@ -56,7 +56,7 @@ public class AccessTokenValidationFilter implements GlobalFilter, Ordered {
         }
 
         Long jwtValidator = authCache.getBy(id);
-        if (jwtValidator != null && jwtValidator > decodedAccessJwt.getIssuedAtAsInstant().toEpochMilli()) {
+        if (jwtValidator != null && jwtValidator > decodedAccessJwt.getIssuedAtAsInstant().getEpochSecond()) {
             throw new GatewayException(GatewayError.GATEWAY_TOKEN_INVALID);
         }
 
