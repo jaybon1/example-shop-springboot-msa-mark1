@@ -196,7 +196,7 @@
 ### 인증/토큰 관리 메모
 - JWT 설정(`shop.security.jwt.*`) 은 Config Server 로부터 주입되며 access 30분, refresh 180일이 기본값이다. user 서비스의 `JwtAuthorizationFilter` 와 gateway 의 `AccessTokenValidationFilter` 가 동일한 시크릿과 만료 정책을 사용한다.
 - `JwtAuthorizationFilter` 는 Gateway 를 통과해 들어온 요청에 대해서도 다시 한 번 서명을 검증하고, 토큰의 `id` 클레임과 JPA 로 관리되는 `jwtValidator` 값을 비교해 무효화 여부를 판단한다. Gateway 를 우회한 내부 호출에 대해서도 동일한 보안 수단을 제공한다.
-- `AuthRedisClient` 는 `denyBy(userId, jwtValidator)` 로 Redis 키를 저장하며 TTL 은 30분(Access Token 기본 만료 시간)으로 고정한다. Redis 에 deny 값이 존재하면 Gateway 및 user 서비스 모두에서 즉시 차단된다.
+- `AuthRedisCache` 는 `denyBy(userId, jwtValidator)` 로 Redis 키를 저장하며 TTL 은 30분(Access Token 기본 만료 시간)으로 고정한다. Redis 에 deny 값이 존재하면 Gateway 및 user 서비스 모두에서 즉시 차단된다.
 - `invalidateBeforeToken`, 사용자 정보 변경, 삭제 등의 이벤트가 발생하면 도메인 계층에서 `jwtValidator` 를 현재 epoch-second 로 갱신하고 Redis 에도 새 값을 기록해 모든 기존 토큰을 즉시 무효화한다.
 - `SecurityConfig` 는 `/v1/auth/**`, `/docs/**`, `/springdoc/**`, `/actuator/health|info` 만 익명 허용하며 나머지는 JWT 인증 필터를 거친다. dev 프로필일 때만 `/h2/**` 를 오픈한다.
 
