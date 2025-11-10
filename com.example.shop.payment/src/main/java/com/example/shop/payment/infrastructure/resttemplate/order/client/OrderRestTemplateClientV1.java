@@ -1,6 +1,7 @@
 package com.example.shop.payment.infrastructure.resttemplate.order.client;
 
 import com.example.shop.global.presentation.dto.ApiDto;
+import com.example.shop.payment.application.client.OrderClientV1;
 import com.example.shop.payment.infrastructure.resttemplate.order.dto.request.ReqPostInternalOrderCompleteDtoV1;
 import com.example.shop.payment.presentation.advice.PaymentError;
 import com.example.shop.payment.presentation.advice.PaymentException;
@@ -24,7 +25,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OrderRestTemplateClientV1 {
+public class OrderRestTemplateClientV1 implements OrderClientV1 {
 
     private static final String ORDER_SERVICE_BASE_URL = "http://order-service";
     private static final String POST_INTERNAL_ORDER_COMPLETE_URL =
@@ -39,6 +40,7 @@ public class OrderRestTemplateClientV1 {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    @Override
     public void postInternalOrdersComplete(UUID orderId, ReqPostInternalOrderCompleteDtoV1 reqDto, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalOrderCompleteDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);

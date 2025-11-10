@@ -1,8 +1,8 @@
 package com.example.shop.payment.application.service;
 
+import com.example.shop.payment.application.client.OrderClientV1;
 import com.example.shop.payment.domain.model.Payment;
 import com.example.shop.payment.domain.repository.PaymentRepository;
-import com.example.shop.payment.infrastructure.resttemplate.order.client.OrderRestTemplateClientV1;
 import com.example.shop.payment.infrastructure.resttemplate.order.dto.request.ReqPostInternalOrderCompleteDtoV1;
 import com.example.shop.payment.presentation.advice.PaymentError;
 import com.example.shop.payment.presentation.advice.PaymentException;
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentServiceV1 {
 
     private final PaymentRepository paymentRepository;
-    private final OrderRestTemplateClientV1 orderRestTemplateClientV1;
+    private final OrderClientV1 orderClientV1;
 
     public ResGetPaymentDtoV1 getPayment(UUID authUserId, UUID paymentId) {
         Payment payment = findPayment(paymentId);
@@ -40,7 +40,7 @@ public class PaymentServiceV1 {
                 .transactionKey(UUID.randomUUID().toString())
                 .build();
         Payment savedPayment = paymentRepository.save(payment);
-        orderRestTemplateClientV1.postInternalOrdersComplete(
+        orderClientV1.postInternalOrdersComplete(
                 savedPayment.getOrderId(),
                 ReqPostInternalOrderCompleteDtoV1.builder()
                         .payment(
