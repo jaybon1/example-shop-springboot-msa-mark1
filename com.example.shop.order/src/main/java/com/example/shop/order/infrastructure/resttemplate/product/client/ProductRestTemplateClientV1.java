@@ -124,7 +124,7 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
         } catch (HttpStatusCodeException exception) {
             throw mapException(exception);
         } catch (RestClientException exception) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+            throw new OrderException(OrderError.ORDER_PRODUCT_REST_CLIENT_ERROR);
         }
     }
 
@@ -169,7 +169,7 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
                 log.warn("Product service error response parsing failed: {}", responseBody, parseException);
             }
         }
-        return new OrderException(OrderError.ORDER_BAD_REQUEST);
+        return new OrderException(OrderError.ORDER_PRODUCT_HTTP_ERROR);
     }
 
     private HttpHeaders createJsonHeadersWithAuthorization(String accessJwt) {

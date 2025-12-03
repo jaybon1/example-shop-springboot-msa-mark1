@@ -86,7 +86,7 @@ public class OrderRestTemplateClientV1 implements OrderClientV1 {
                 log.warn("Order service error response parsing failed: {}", responseBody, parseException);
             }
         }
-        return new PaymentException(PaymentError.PAYMENT_BAD_REQUEST);
+        return new PaymentException(PaymentError.PAYMENT_ORDER_HTTP_ERROR);
     }
 
     private HttpHeaders createJsonHeadersWithAuthorization(String accessJwt) {

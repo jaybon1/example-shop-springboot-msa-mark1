@@ -23,7 +23,9 @@ public enum OrderError implements GlobalError {
     ORDER_PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 일치하지 않습니다."),
     ORDER_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 정보를 찾을 수 없습니다."),
     ORDER_PAYMENT_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 결제입니다."),
+    ORDER_PRODUCT_HTTP_ERROR(HttpStatus.BAD_REQUEST, "상품 서비스 HTTP 응답 처리 중 오류가 발생했습니다."),
     ORDER_PRODUCT_REST_CLIENT_ERROR(HttpStatus.BAD_REQUEST, "상품 서비스 호출 중 오류가 발생했습니다."),
+    ORDER_PAYMENT_HTTP_ERROR(HttpStatus.BAD_REQUEST, "결제 서비스 HTTP 응답 처리 중 오류가 발생했습니다."),
     ORDER_PAYMENT_REST_CLIENT_ERROR(HttpStatus.BAD_REQUEST, "결제 서비스 호출 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
