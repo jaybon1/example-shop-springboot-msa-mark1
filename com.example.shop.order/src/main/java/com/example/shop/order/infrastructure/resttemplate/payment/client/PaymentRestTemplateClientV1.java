@@ -6,6 +6,8 @@ import com.example.shop.order.presentation.advice.OrderError;
 import com.example.shop.order.presentation.advice.OrderException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,8 @@ public class PaymentRestTemplateClientV1 implements PaymentClientV1 {
     private final ObjectMapper objectMapper;
 
     @Override
+    @CircuitBreaker(name = "paymentCancel")
+    @Retry(name = "paymentCancel")
     public void postInternalPaymentsCancel(UUID paymentId, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<Void> httpEntity = new HttpEntity<>(headers);

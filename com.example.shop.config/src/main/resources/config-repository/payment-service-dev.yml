@@ -56,6 +56,10 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3  # 서킷 브레이커가 Half-open 상태에서 허용하는 최대 호출 수
         # 서킷 브레이커가 Open 상태에서 Half-open 상태로 전환되기 전에 기다리는 시간
         waitDurationInOpenState: 20s  # Open 상태에서 Half-open 상태로 전환되기 전에 대기하는 시간
+    instances:
+      orderComplete:
+        baseConfig: default
+        slowCallDurationThreshold: 3s
   timelimiter:
     configs:
       default:

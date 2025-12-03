@@ -10,6 +10,8 @@ import com.example.shop.order.presentation.advice.OrderError;
 import com.example.shop.order.presentation.advice.OrderException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -54,6 +56,8 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
     private final ObjectMapper objectMapper;
 
     @Override
+    @CircuitBreaker(name = "productRead")
+    @Retry(name = "productRead")
     public ResGetProductsDtoV1 getProducts(Integer page, Integer size, String sort, String name) {
         String url = buildGetProductsUrl(page, size, sort, name);
 
@@ -73,6 +77,8 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
     }
 
     @Override
+    @CircuitBreaker(name = "productRead")
+    @Retry(name = "productRead")
     public ResGetProductDtoV1 getProduct(UUID productId) {
         try {
             ResponseEntity<ApiDto<ResGetProductDtoV1>> responseEntity = restTemplate.exchange(
@@ -91,6 +97,8 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
     }
 
     @Override
+    @CircuitBreaker(name = "productStock")
+    @Retry(name = "productStock")
     public void postInternalProductsReleaseStock(ReqPostInternalProductsReleaseStockDtoV1 reqDto, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalProductsReleaseStockDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
@@ -110,6 +118,8 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
     }
 
     @Override
+    @CircuitBreaker(name = "productStock")
+    @Retry(name = "productStock")
     public void postInternalProductsReturnStock(ReqPostInternalProductsReturnStockDtoV1 reqDto, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalProductsReturnStockDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);

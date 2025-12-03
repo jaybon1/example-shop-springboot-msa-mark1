@@ -7,6 +7,7 @@ import com.example.shop.payment.presentation.advice.PaymentError;
 import com.example.shop.payment.presentation.advice.PaymentException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ public class OrderRestTemplateClientV1 implements OrderClientV1 {
     private final ObjectMapper objectMapper;
 
     @Override
+    @CircuitBreaker(name = "orderComplete")
     public void postInternalOrdersComplete(UUID orderId, ReqPostInternalOrderCompleteDtoV1 reqDto, String accessJwt) {
         HttpHeaders headers = createJsonHeadersWithAuthorization(accessJwt);
         HttpEntity<ReqPostInternalOrderCompleteDtoV1> httpEntity = new HttpEntity<>(reqDto, headers);
