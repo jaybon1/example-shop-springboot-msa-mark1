@@ -1,9 +1,9 @@
-package com.example.shop.payment.infrastructure.persistence.repository;
+package com.example.shop.payment.infrastructure.jpa.repository;
 
 import com.example.shop.payment.domain.model.Payment;
 import com.example.shop.payment.domain.repository.PaymentRepository;
-import com.example.shop.payment.infrastructure.persistence.entity.PaymentEntity;
-import com.example.shop.payment.infrastructure.persistence.mapper.PaymentMapper;
+import com.example.shop.payment.infrastructure.jpa.entity.PaymentEntity;
+import com.example.shop.payment.infrastructure.jpa.mapper.PaymentMapper;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

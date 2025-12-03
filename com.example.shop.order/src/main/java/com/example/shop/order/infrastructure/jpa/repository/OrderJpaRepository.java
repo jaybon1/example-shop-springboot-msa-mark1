@@ -1,6 +1,6 @@
-package com.example.shop.order.infrastructure.persistence.repository;
+package com.example.shop.order.infrastructure.jpa.repository;
 
-import com.example.shop.order.infrastructure.persistence.entity.OrderEntity;
+import com.example.shop.order.infrastructure.jpa.entity.OrderEntity;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

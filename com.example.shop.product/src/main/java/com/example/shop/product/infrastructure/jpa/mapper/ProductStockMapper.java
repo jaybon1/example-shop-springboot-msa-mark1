@@ -1,7 +1,7 @@
-package com.example.shop.product.infrastructure.persistence.mapper;
+package com.example.shop.product.infrastructure.jpa.mapper;
 
 import com.example.shop.product.domain.model.ProductStock;
-import com.example.shop.product.infrastructure.persistence.entity.ProductStockEntity;
+import com.example.shop.product.infrastructure.jpa.entity.ProductStockEntity;
 import org.springframework.stereotype.Component;
 
 @Component

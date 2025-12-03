@@ -1,4 +1,4 @@
-package com.example.shop.order.infrastructure.persistence.entity;
+package com.example.shop.order.infrastructure.jpa.entity;
 
 import com.example.shop.global.infrastructure.persistence.entity.BaseEntity;
 import jakarta.persistence.CascadeType;

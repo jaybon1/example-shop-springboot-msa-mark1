@@ -1,9 +1,9 @@
-package com.example.shop.order.infrastructure.persistence.repository;
+package com.example.shop.order.infrastructure.jpa.repository;
 
 import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.domain.repository.OrderRepository;
-import com.example.shop.order.infrastructure.persistence.entity.OrderEntity;
-import com.example.shop.order.infrastructure.persistence.mapper.OrderMapper;
+import com.example.shop.order.infrastructure.jpa.entity.OrderEntity;
+import com.example.shop.order.infrastructure.jpa.mapper.OrderMapper;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

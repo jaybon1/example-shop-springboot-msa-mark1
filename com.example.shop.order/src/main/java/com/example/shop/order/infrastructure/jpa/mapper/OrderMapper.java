@@ -1,10 +1,10 @@
-package com.example.shop.order.infrastructure.persistence.mapper;
+package com.example.shop.order.infrastructure.jpa.mapper;
 
 import com.example.shop.order.domain.model.Order;
 import com.example.shop.order.domain.model.OrderItem;
 import com.example.shop.order.domain.vo.OrderPayment;
-import com.example.shop.order.infrastructure.persistence.entity.OrderEntity;
-import com.example.shop.order.infrastructure.persistence.entity.OrderItemEntity;
+import com.example.shop.order.infrastructure.jpa.entity.OrderEntity;
+import com.example.shop.order.infrastructure.jpa.entity.OrderItemEntity;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;

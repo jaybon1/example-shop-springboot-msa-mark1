@@ -1,7 +1,7 @@
-package com.example.shop.payment.infrastructure.persistence.mapper;
+package com.example.shop.payment.infrastructure.jpa.mapper;
 
 import com.example.shop.payment.domain.model.Payment;
-import com.example.shop.payment.infrastructure.persistence.entity.PaymentEntity;
+import com.example.shop.payment.infrastructure.jpa.entity.PaymentEntity;
 import org.springframework.stereotype.Component;
 
 @Component

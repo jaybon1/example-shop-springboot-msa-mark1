@@ -1,10 +1,10 @@
-package com.example.shop.product.infrastructure.persistence.repository;
+package com.example.shop.product.infrastructure.jpa.repository;
 
 import com.example.shop.product.domain.model.ProductStock;
 import com.example.shop.product.domain.model.ProductStock.ProductStockType;
 import com.example.shop.product.domain.repository.ProductStockRepository;
-import com.example.shop.product.infrastructure.persistence.entity.ProductStockEntity;
-import com.example.shop.product.infrastructure.persistence.mapper.ProductStockMapper;
+import com.example.shop.product.infrastructure.jpa.entity.ProductStockEntity;
+import com.example.shop.product.infrastructure.jpa.mapper.ProductStockMapper;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
-package com.example.shop.product.infrastructure.persistence.mapper;
+package com.example.shop.product.infrastructure.jpa.mapper;
 
 import com.example.shop.product.domain.model.Product;
-import com.example.shop.product.infrastructure.persistence.entity.ProductEntity;
+import com.example.shop.product.infrastructure.jpa.entity.ProductEntity;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;

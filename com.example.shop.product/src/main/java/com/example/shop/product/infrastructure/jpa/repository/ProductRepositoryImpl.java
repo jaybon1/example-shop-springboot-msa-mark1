@@ -1,9 +1,9 @@
-package com.example.shop.product.infrastructure.persistence.repository;
+package com.example.shop.product.infrastructure.jpa.repository;
 
 import com.example.shop.product.domain.model.Product;
 import com.example.shop.product.domain.repository.ProductRepository;
-import com.example.shop.product.infrastructure.persistence.entity.ProductEntity;
-import com.example.shop.product.infrastructure.persistence.mapper.ProductMapper;
+import com.example.shop.product.infrastructure.jpa.entity.ProductEntity;
+import com.example.shop.product.infrastructure.jpa.mapper.ProductMapper;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

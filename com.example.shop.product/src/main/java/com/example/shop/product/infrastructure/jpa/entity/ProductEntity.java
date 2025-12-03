@@ -1,4 +1,4 @@
-package com.example.shop.product.infrastructure.persistence.entity;
+package com.example.shop.product.infrastructure.jpa.entity;
 
 import com.example.shop.global.infrastructure.persistence.entity.BaseEntity;
 import jakarta.persistence.Column;

@@ -1,7 +1,7 @@
-package com.example.shop.product.infrastructure.persistence.repository;
+package com.example.shop.product.infrastructure.jpa.repository;
 
 import com.example.shop.product.domain.model.ProductStock.ProductStockType;
-import com.example.shop.product.infrastructure.persistence.entity.ProductStockEntity;
+import com.example.shop.product.infrastructure.jpa.entity.ProductStockEntity;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
