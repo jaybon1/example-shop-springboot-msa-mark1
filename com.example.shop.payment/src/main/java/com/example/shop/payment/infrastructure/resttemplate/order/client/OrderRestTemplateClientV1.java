@@ -80,7 +80,7 @@ public class OrderRestTemplateClientV1 implements OrderClientV1 {
                 if ("ORDER_NOT_FOUND".equals(errorCode)
                         || "ORDER_ALREADY_CANCELLED".equals(errorCode)
                         || "ORDER_ALREADY_PAID".equals(errorCode)) {
-                    return new PaymentException(PaymentError.PAYMENT_BAD_REQUEST);
+                    return new PaymentException(PaymentError.PAYMENT_ORDER_BAD_REQUEST);
                 }
             } catch (Exception parseException) {
                 log.warn("Order service error response parsing failed: {}", responseBody, parseException);
