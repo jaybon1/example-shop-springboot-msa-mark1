@@ -47,7 +47,7 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
 
     // cache
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+//    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     // testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

@@ -14,6 +14,9 @@ import com.example.shop.product.presentation.dto.response.ResGetProductDtoV1;
 import com.example.shop.product.presentation.dto.response.ResGetProductsDtoV1;
 import com.example.shop.product.presentation.dto.response.ResPostProductsDtoV1;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,8 +31,12 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ProductServiceV1 {
 
+    private static final String PRODUCT_CACHE_NAME = "product";
+
     private final ProductRepository productRepository;
     private final ProductStockRepository productStockRepository;
+
+    private final CacheManager cacheManager;
 
     public ResGetProductsDtoV1 getProducts(Pageable pageable, String name) {
         String normalizedName = normalize(name);
@@ -39,6 +46,7 @@ public class ProductServiceV1 {
         return ResGetProductsDtoV1.of(productPage);
     }
 
+    @Cacheable(cacheNames = PRODUCT_CACHE_NAME, key = "#productId")
     public ResGetProductDtoV1 getProduct(UUID productId) {
         return ResGetProductDtoV1.of(findProductById(productId));
     }
@@ -65,11 +73,13 @@ public class ProductServiceV1 {
         if (productStockRepository.existsByOrderIdAndType(reqDto.getOrder().getOrderId(), ProductStockType.RELEASE)) {
             throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
         }
-        List<Product> productList = productRepository.findByIdIn(
-                reqDto.getProductStocks().stream()
-                        .map(ReqPostInternalProductsReleaseStockDtoV1.ProductStockDto::getProductId)
-                        .toList()
-        );
+
+        List<UUID> productIds = reqDto.getProductStocks().stream()
+                .map(ReqPostInternalProductsReleaseStockDtoV1.ProductStockDto::getProductId)
+                .toList();
+
+        List<Product> productList = productRepository.findByIdIn(productIds);
+
         reqDto.getProductStocks().forEach(productStockDto -> {
             productList.stream().filter(product -> product.getId().equals(productStockDto.getProductId())).findFirst()
                     .ifPresent(product -> {
@@ -78,16 +88,21 @@ public class ProductServiceV1 {
                         }
                         Product updatedProduct = product.update(null, null, product.getStock() - productStockDto.getQuantity());
                         productRepository.save(updatedProduct);
-                        productStockRepository.save(
-                                ProductStock.builder()
-                                        .productId(productStockDto.getProductId())
-                                        .orderId(reqDto.getOrder().getOrderId())
-                                        .quantity(productStockDto.getQuantity())
-                                        .type(ProductStockType.RELEASE)
-                                        .build()
-                        );
                     });
         });
+
+        reqDto.getProductStocks().forEach(productStockDto ->
+                productStockRepository.save(
+                        ProductStock.builder()
+                                .productId(productStockDto.getProductId())
+                                .orderId(reqDto.getOrder().getOrderId())
+                                .quantity(productStockDto.getQuantity())
+                                .type(ProductStockType.RELEASE)
+                                .build()
+                )
+        );
+
+        evictProductCache(productIds);
     }
 
     @Transactional
@@ -95,23 +110,42 @@ public class ProductServiceV1 {
         if (productStockRepository.existsByOrderIdAndType(reqDto.getOrder().getOrderId(), ProductStockType.RETURN)) {
             throw new ProductException(ProductError.PRODUCT_BAD_REQUEST);
         }
+
         List<ProductStock> productStockList = productStockRepository.findByOrderId(reqDto.getOrder().getOrderId());
-        List<Product> productList = productRepository.findByIdIn(productStockList.stream().map(ProductStock::getProductId).toList());
+        List<UUID> productIds = productStockList.stream()
+                .map(ProductStock::getProductId)
+                .toList();
+
+        List<Product> productList = productRepository.findByIdIn(productIds);
+
         productStockList.forEach(productStock -> {
             productList.stream().filter(product -> product.getId().equals(productStock.getProductId())).findFirst()
                     .ifPresent(product -> {
                         Product updatedProduct = product.update(null, null, product.getStock() + productStock.getQuantity());
                         productRepository.save(updatedProduct);
-                        productStockRepository.save(
-                                ProductStock.builder()
-                                        .productId(productStock.getProductId())
-                                        .orderId(reqDto.getOrder().getOrderId())
-                                        .quantity(productStock.getQuantity())
-                                        .type(ProductStockType.RETURN)
-                                        .build()
-                        );
                     });
         });
+
+        productStockList.forEach(productStock ->
+                productStockRepository.save(
+                        ProductStock.builder()
+                                .productId(productStock.getProductId())
+                                .orderId(reqDto.getOrder().getOrderId())
+                                .quantity(productStock.getQuantity())
+                                .type(ProductStockType.RETURN)
+                                .build()
+                )
+        );
+
+        evictProductCache(productIds);
+    }
+
+    private void evictProductCache(List<UUID> productIds) {
+        Cache cache = cacheManager.getCache(PRODUCT_CACHE_NAME);
+        if (cache == null) {
+            return;
+        }
+        productIds.forEach(cache::evict);
     }
 
     private void validateDuplicatedName(String name, Optional<UUID> excludeId) {

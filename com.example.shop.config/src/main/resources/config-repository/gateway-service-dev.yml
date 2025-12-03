@@ -2,6 +2,11 @@ server:
   port: 19200
 
 spring:
+  data:
+    redis:
+      host: localhost # 실제 서비스에서는 env 등으로 관리
+      port: 6379 # 실제 서비스에서는 env 등으로 관리
+      password: systempass # 실제 서비스에서는 env 등으로 관리
   cloud:
     loadbalancer:
       cache:
