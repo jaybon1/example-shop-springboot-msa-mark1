@@ -57,7 +57,7 @@ public class OrderRestTemplateClientV1 implements OrderClientV1 {
         } catch (HttpStatusCodeException exception) {
             throw mapException(exception);
         } catch (RestClientException exception) {
-            throw new PaymentException(PaymentError.PAYMENT_BAD_REQUEST);
+            throw new PaymentException(PaymentError.PAYMENT_ORDER_REST_CLIENT_ERROR);
         }
     }
 

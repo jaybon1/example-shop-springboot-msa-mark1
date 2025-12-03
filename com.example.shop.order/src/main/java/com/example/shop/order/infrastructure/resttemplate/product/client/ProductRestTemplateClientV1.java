@@ -68,7 +68,7 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
         } catch (HttpStatusCodeException exception) {
             throw mapException(exception);
         } catch (RestClientException exception) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+            throw new OrderException(OrderError.ORDER_PRODUCT_REST_CLIENT_ERROR);
         }
     }
 
@@ -86,7 +86,7 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
         } catch (HttpStatusCodeException exception) {
             throw mapException(exception);
         } catch (RestClientException exception) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+            throw new OrderException(OrderError.ORDER_PRODUCT_REST_CLIENT_ERROR);
         }
     }
 
@@ -105,7 +105,7 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
         } catch (HttpStatusCodeException exception) {
             throw mapException(exception);
         } catch (RestClientException exception) {
-            throw new OrderException(OrderError.ORDER_BAD_REQUEST);
+            throw new OrderException(OrderError.ORDER_PRODUCT_REST_CLIENT_ERROR);
         }
     }
 

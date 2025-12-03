@@ -15,7 +15,8 @@ public enum PaymentError implements GlobalError {
     PAYMENT_INVALID_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 수단입니다."),
     PAYMENT_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "결제 금액이 올바르지 않습니다."),
     PAYMENT_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 결제입니다."),
-    PAYMENT_ORDER_BAD_REQUEST(HttpStatus.BAD_REQUEST, "결제와 관련된 주문 정보가 올바르지 않습니다.");
+    PAYMENT_ORDER_BAD_REQUEST(HttpStatus.BAD_REQUEST, "결제와 관련된 주문 정보가 올바르지 않습니다."),
+    PAYMENT_ORDER_REST_CLIENT_ERROR(HttpStatus.BAD_REQUEST, "주문 서비스 호출 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String errorMessage;
