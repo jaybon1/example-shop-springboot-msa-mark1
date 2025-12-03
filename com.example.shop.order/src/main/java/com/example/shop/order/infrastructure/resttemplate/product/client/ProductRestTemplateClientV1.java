@@ -160,10 +160,10 @@ public class ProductRestTemplateClientV1 implements ProductClientV1 {
                 ApiDto<Object> apiDto = objectMapper.readValue(responseBody, API_DTO_TYPE_REFERENCE);
                 String errorCode = apiDto.getCode();
                 if ("PRODUCT_CAN_NOT_FOUND".equals(errorCode)) {
-                    return new OrderException(OrderError.ORDER_PRODUCT_NOT_FOUND);
+                    return new OrderException(OrderError.ORDER_PRODUCT_CAN_NOT_FOUND);
                 }
                 if ("PRODUCT_STOCK_NOT_ENOUGH".equals(errorCode)) {
-                    return new OrderException(OrderError.ORDER_PRODUCT_OUT_OF_STOCK);
+                    return new OrderException(OrderError.ORDER_PRODUCT_STOCK_NOT_ENOUGH);
                 }
             } catch (Exception parseException) {
                 log.warn("Product service error response parsing failed: {}", responseBody, parseException);

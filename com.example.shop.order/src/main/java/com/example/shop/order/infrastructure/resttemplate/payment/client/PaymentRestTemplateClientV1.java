@@ -72,8 +72,10 @@ public class PaymentRestTemplateClientV1 implements PaymentClientV1 {
             try {
                 ApiDto<Object> apiDto = objectMapper.readValue(responseBody, API_DTO_TYPE_REFERENCE);
                 String errorCode = apiDto.getCode();
-                if ("PAYMENT_NOT_FOUND".equals(errorCode) || "PAYMENT_ALREADY_CANCELLED".equals(errorCode)) {
-                    return new OrderException(OrderError.ORDER_BAD_REQUEST);
+                if ("PAYMENT_NOT_FOUND".equals(errorCode)) {
+                    return new OrderException(OrderError.ORDER_PAYMENT_NOT_FOUND);
+                } else if ( "PAYMENT_ALREADY_CANCELLED".equals(errorCode)) {
+                    return new OrderException(OrderError.ORDER_PAYMENT_ALREADY_CANCELLED);
                 }
             } catch (Exception parseException) {
                 log.warn("Payment service error response parsing failed: {}", responseBody, parseException);

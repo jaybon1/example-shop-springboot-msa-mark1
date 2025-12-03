@@ -79,7 +79,7 @@ public class OrderServiceV1 {
             ResGetProductDtoV1.ProductDto product = fetchProduct(productId);
             Long productPrice = product.getPrice();
             if (productPrice == null || productPrice < 0) {
-                throw new OrderException(OrderError.ORDER_PRODUCT_OUT_OF_STOCK);
+                throw new OrderException(OrderError.ORDER_PRODUCT_STOCK_NOT_ENOUGH);
             }
             long unitPrice = productPrice;
             long lineTotal = safeMultiply(unitPrice, quantity);
@@ -215,7 +215,7 @@ public class OrderServiceV1 {
     private ResGetProductDtoV1.ProductDto fetchProduct(UUID productId) {
         ResGetProductDtoV1 response = productClientV1.getProduct(productId);
         if (response == null || response.getProduct() == null) {
-            throw new OrderException(OrderError.ORDER_PRODUCT_NOT_FOUND);
+            throw new OrderException(OrderError.ORDER_PRODUCT_CAN_NOT_FOUND);
         }
         return response.getProduct();
     }
