@@ -26,7 +26,7 @@ ext {
 
 dependencies {
     // global
-    implementation 'com.github.jaybon1:example-shop-springboot-msa-global:0.0.2'
+    implementation 'com.github.jaybon1:example-shop-springboot-msa-global:0.0.3'
 
     // web
     implementation 'org.springframework.boot:spring-boot-starter-web'

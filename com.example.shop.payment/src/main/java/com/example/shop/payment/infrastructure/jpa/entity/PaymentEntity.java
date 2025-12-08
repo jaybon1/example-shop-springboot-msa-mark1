@@ -1,6 +1,6 @@
 package com.example.shop.payment.infrastructure.jpa.entity;
 
-import com.example.shop.global.infrastructure.persistence.entity.BaseEntity;
+import com.example.shop.global.infrastructure.jpa.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
